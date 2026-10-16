@@ -1,8 +1,9 @@
 // 载体目标：LeviLamina（ADR-0005 的第一个目标）。
 //
-// 它做两件事：
+// 它做三件事：
 //   1. 把 CLR 托管进 BDS 进程 —— 与其它载体共用 common/ 的启动序列，不各写一份；
-//   2. 把自己注册成 LeviLamina 的一个插件管理器（ADR-0003），此后子插件由父级调度。
+//   2. 把自己注册成 LeviLamina 的一个插件管理器（ADR-0003），此后子插件由父级调度；
+//   3. 拒绝父级停用或卸载自己（ADR-0024）。
 //
 // 入口是 LeviLamina 的 `ll_mod_load` 导出，由它调用 —— 不是在 DllMain 里做事（ADR-0016）。
 
@@ -28,11 +29,24 @@ namespace {
 class ShimMod {
 public:
     bool load();
+    bool disable();
+    bool unload();
 };
 
 ShimMod& getShim() {
     static ShimMod instance;
     return instance;
+}
+
+/// 停用与卸载共用同一条理由。父级把失败原样报给操作者（"The mod cannot be disabled/
+/// unloaded"），原因得由这里补上，否则操作者只看到"不行"。
+bool refuseOffline() {
+    ll::mod::NativeMod::current()->getLogger().warn(std::string{
+        "框架停用或卸载都做不到：CLR 已经托管进这个进程，.NET 不卸载运行时；"
+        "而放掉本 dll 会让父级注册表里的插件管理器指向已卸载的代码。"
+        "要停框架请卸载它的插件，要移除它请重启服务端"
+    });
+    return false;
 }
 
 }  // namespace
@@ -79,6 +93,10 @@ bool ShimMod::load() {
     logger.info("已接管：CLR 就绪，插件管理器已注册");
     return true;
 }
+
+bool ShimMod::disable() { return refuseOffline(); }
+
+bool ShimMod::unload() { return refuseOffline(); }
 
 }  // namespace hosihikari::shim::levilamina
 
