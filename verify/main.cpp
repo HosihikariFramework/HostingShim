@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    code = hosihikari::shim::InitializeRuntime(configPath.c_str());
+    code = hosihikari::shim::InitializeRuntime(configPath.c_str(), assemblyPath.c_str());
     if (!Report("以 runtimeconfig 初始化运行时", code)) {
         return 1;
     }

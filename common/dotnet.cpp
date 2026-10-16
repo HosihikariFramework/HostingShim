@@ -1,5 +1,7 @@
 #include "dotnet.h"
 
+#include <string>
+
 #if defined(_WIN32)
     #include <Windows.h>
 #else
@@ -16,6 +18,7 @@ void* g_hostfxr = nullptr;
 hostfxr_initialize_for_runtime_config_fn g_initializeForRuntimeConfig = nullptr;
 hostfxr_get_runtime_delegate_fn g_getRuntimeDelegate = nullptr;
 hostfxr_close_fn g_close = nullptr;
+hostfxr_set_runtime_property_value_fn g_setRuntimeProperty = nullptr;
 load_assembly_and_get_function_pointer_fn g_loadAssemblyAndGetFunctionPointer = nullptr;
 
 // 跨平台差异之一（ADR-0005）：Windows 用 LoadLibraryW，Linux 用 dlopen。
@@ -60,17 +63,35 @@ int LoadHostfxr() {
         g_hostfxr, "hostfxr_initialize_for_runtime_config");
     g_getRuntimeDelegate = LoadSymbol<hostfxr_get_runtime_delegate_fn>(g_hostfxr, "hostfxr_get_runtime_delegate");
     g_close = LoadSymbol<hostfxr_close_fn>(g_hostfxr, "hostfxr_close");
+    g_setRuntimeProperty =
+        LoadSymbol<hostfxr_set_runtime_property_value_fn>(g_hostfxr, "hostfxr_set_runtime_property_value");
 
-    if (g_initializeForRuntimeConfig == nullptr || g_getRuntimeDelegate == nullptr || g_close == nullptr) {
+    if (g_initializeForRuntimeConfig == nullptr || g_getRuntimeDelegate == nullptr || g_close == nullptr ||
+        g_setRuntimeProperty == nullptr) {
         return -1;
     }
 
     return 0;
 }
 
-int InitializeRuntime(const char_t* runtimeConfigPath) {
+namespace {
+
+/// 取路径里的目录部分。Windows 与 Linux 的分隔符都处理。
+std::basic_string<char_t> DirectoryOf(const char_t* path) {
+    std::basic_string<char_t> text = path == nullptr ? std::basic_string<char_t>() : std::basic_string<char_t>(path);
+    const size_t separator = text.find_last_of(CHARTEXT("/\\"));
+    return separator == std::basic_string<char_t>::npos ? std::basic_string<char_t>() : text.substr(0, separator);
+}
+
+}  // namespace
+
+int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath) {
+    hostfxr_initialize_parameters parameters{};
+    parameters.size = sizeof(parameters);
+    parameters.host_path = hostPath;
+
     hostfxr_handle context = nullptr;
-    int rc = g_initializeForRuntimeConfig(runtimeConfigPath, nullptr, &context);
+    int rc = g_initializeForRuntimeConfig(runtimeConfigPath, &parameters, &context);
 
     // 正向的返回码也是成功：宿主（或别的框架）已经兼容地初始化过运行时时，
     // 这里返回的是 Success_HostAlreadyInitialized —— 复用那个运行时正是我们要的。
@@ -81,6 +102,14 @@ int InitializeRuntime(const char_t* runtimeConfigPath) {
         }
 
         return rc < 0 ? rc : -1;
+    }
+
+    // 组件托管下运行时**不会**替你填 `AppContext.BaseDirectory` —— 它在托管侧是空串。
+    // 按基目录找东西的代码（McMaster 就会按它枚举）拿到空路径就崩。属性只能在运行时载入之前设，
+    // 所以就在这儿，取委托之前。
+    const std::basic_string<char_t> componentDirectory = DirectoryOf(hostPath);
+    if (!componentDirectory.empty()) {
+        g_setRuntimeProperty(context, CHARTEXT("APP_CONTEXT_BASE_DIRECTORY"), componentDirectory.c_str());
     }
 
     rc = g_getRuntimeDelegate(
@@ -122,7 +151,7 @@ int StartRuntime(
         return rc;
     }
 
-    rc = InitializeRuntime(runtimeConfigPath);
+    rc = InitializeRuntime(runtimeConfigPath, assemblyPath);
     if (rc != 0) {
         return rc;
     }

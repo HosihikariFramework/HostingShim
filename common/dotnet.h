@@ -12,13 +12,25 @@
 
 #include "nethost/coreclr_delegates.h"
 
+// char_t 在 Windows 是 wchar_t、Linux 是 char（ADR-0005 列的跨平台差异之一）。
+// 这是 TEXT() 的跨平台等价物：写字符串字面量时用它，两边都能编。
+#if defined(_WIN32)
+    #define CHARTEXT(text) L##text
+#else
+    #define CHARTEXT(text) text
+#endif
+
 namespace hosihikari::shim {
 
 /// 定位并加载 hostfxr。成功返回 0。
 int LoadHostfxr();
 
 /// 以组件的 runtimeconfig.json 初始化运行时，取回 load_assembly_and_get_function_pointer。
-int InitializeRuntime(const char_t* runtimeConfigPath);
+///
+/// `hostPath` 指向组件自身（托管程序集的路径）—— **必须给**。官方教程那段传的是 nullptr，
+/// 代价是运行时拿不到宿主路径，托管侧的 `AppContext.BaseDirectory` 会是**空的**；
+/// 任何按基目录找东西的代码（比如按目录枚举依赖）就会拿到空路径。
+int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath);
 
 /// 载入托管程序集并取回入口的函数指针。
 /// 目标方法须标 `[UnmanagedCallersOnly]` —— 走 UNMANAGEDCALLERSONLY_METHOD 可以省掉封送桩。
