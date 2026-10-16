@@ -10,7 +10,7 @@
 // 两侧都是"最小的那一层"：原生侧只做定位、初始化、取入口；
 // 其余一切（发现、依赖、隔离、生命周期）都在托管侧。
 
-#include "nethost/coreclr_delegates.h"
+#include "coreclr_delegates.h"  // 来自随版本拉取的 runtime pack，由构建把它的 native 目录加进包含路径
 
 // char_t 在 Windows 是 wchar_t、Linux 是 char（ADR-0005 列的跨平台差异之一）。
 // 这是 TEXT() 的跨平台等价物：写字符串字面量时用它，两边都能编。

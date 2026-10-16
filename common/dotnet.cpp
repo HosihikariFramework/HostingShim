@@ -8,8 +8,8 @@
     #include <dlfcn.h>
 #endif
 
-#include "nethost/hostfxr.h"
-#include "nethost/nethost.h"
+#include "hostfxr.h"
+#include "nethost.h"
 
 namespace hosihikari::shim {
 namespace {

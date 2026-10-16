@@ -11,7 +11,7 @@ Hosihikari 框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控�
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `common/nethost/` | 随仓携带的 nethost 头文件与静态库（来自 .NET SDK 的 runtime pack，MIT） |
+| `verify/nethost/` | 一个只为拉取 runtime pack 的小工程 —— nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
 ## 跑一遍
