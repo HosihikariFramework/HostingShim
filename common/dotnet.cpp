@@ -1,0 +1,133 @@
+#include "dotnet.h"
+
+#if defined(_WIN32)
+    #include <Windows.h>
+#else
+    #include <dlfcn.h>
+#endif
+
+#include "nethost/hostfxr.h"
+#include "nethost/nethost.h"
+
+namespace hosihikari::shim {
+namespace {
+
+void* g_hostfxr = nullptr;
+hostfxr_initialize_for_runtime_config_fn g_initializeForRuntimeConfig = nullptr;
+hostfxr_get_runtime_delegate_fn g_getRuntimeDelegate = nullptr;
+hostfxr_close_fn g_close = nullptr;
+load_assembly_and_get_function_pointer_fn g_loadAssemblyAndGetFunctionPointer = nullptr;
+
+// 跨平台差异之一（ADR-0005）：Windows 用 LoadLibraryW，Linux 用 dlopen。
+void* OpenLibrary(const char_t* path) {
+#if defined(_WIN32)
+    return ::LoadLibraryW(path);
+#else
+    return ::dlopen(path, RTLD_LAZY | RTLD_LOCAL);
+#endif
+}
+
+void* FindSymbol(void* library, const char* name) {
+#if defined(_WIN32)
+    return reinterpret_cast<void*>(::GetProcAddress(static_cast<HMODULE>(library), name));
+#else
+    return ::dlsym(library, name);
+#endif
+}
+
+template <typename T>
+T LoadSymbol(void* library, const char* name) {
+    return reinterpret_cast<T>(FindSymbol(library, name));
+}
+
+}  // namespace
+
+int LoadHostfxr() {
+    char_t buffer[4096];
+    size_t bufferSize = sizeof(buffer) / sizeof(char_t);
+
+    int rc = get_hostfxr_path(buffer, &bufferSize, nullptr);
+    if (rc != 0) {
+        return rc;
+    }
+
+    g_hostfxr = OpenLibrary(buffer);
+    if (g_hostfxr == nullptr) {
+        return -1;
+    }
+
+    g_initializeForRuntimeConfig = LoadSymbol<hostfxr_initialize_for_runtime_config_fn>(
+        g_hostfxr, "hostfxr_initialize_for_runtime_config");
+    g_getRuntimeDelegate = LoadSymbol<hostfxr_get_runtime_delegate_fn>(g_hostfxr, "hostfxr_get_runtime_delegate");
+    g_close = LoadSymbol<hostfxr_close_fn>(g_hostfxr, "hostfxr_close");
+
+    if (g_initializeForRuntimeConfig == nullptr || g_getRuntimeDelegate == nullptr || g_close == nullptr) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int InitializeRuntime(const char_t* runtimeConfigPath) {
+    hostfxr_handle context = nullptr;
+    int rc = g_initializeForRuntimeConfig(runtimeConfigPath, nullptr, &context);
+
+    // 正向的返回码也是成功：宿主（或别的框架）已经兼容地初始化过运行时时，
+    // 这里返回的是 Success_HostAlreadyInitialized —— 复用那个运行时正是我们要的。
+    // 只认 0 会把这种情形误判成失败，而"一个进程只有一个运行时"是硬约束。
+    if (rc < 0 || context == nullptr) {
+        if (context != nullptr) {
+            g_close(context);
+        }
+
+        return rc < 0 ? rc : -1;
+    }
+
+    rc = g_getRuntimeDelegate(
+        context, hdt_load_assembly_and_get_function_pointer, reinterpret_cast<void**>(&g_loadAssemblyAndGetFunctionPointer));
+    g_close(context);
+
+    if (rc < 0 || g_loadAssemblyAndGetFunctionPointer == nullptr) {
+        return rc < 0 ? rc : -1;
+    }
+
+    return 0;
+}
+
+int GetManagedEntry(
+    const char_t* assemblyPath,
+    const char_t* typeName,
+    const char_t* methodName,
+    component_entry_point_fn* entryPoint) {
+    void* address = nullptr;
+    int rc = g_loadAssemblyAndGetFunctionPointer(
+        assemblyPath, typeName, methodName, UNMANAGEDCALLERSONLY_METHOD, nullptr, &address);
+
+    if (rc < 0 || address == nullptr) {
+        return rc < 0 ? rc : -1;
+    }
+
+    *entryPoint = reinterpret_cast<component_entry_point_fn>(address);
+    return 0;
+}
+
+int StartRuntime(
+    const char_t* runtimeConfigPath,
+    const char_t* assemblyPath,
+    const char_t* typeName,
+    const char_t* methodName,
+    component_entry_point_fn* entryPoint) {
+    int rc = LoadHostfxr();
+    if (rc != 0) {
+        return rc;
+    }
+
+    rc = InitializeRuntime(runtimeConfigPath);
+    if (rc != 0) {
+        return rc;
+    }
+
+    return GetManagedEntry(assemblyPath, typeName, methodName, entryPoint);
+}
+
+}  // namespace hosihikari::shim
