@@ -1,5 +1,6 @@
 #include "dotnet.h"
 
+#include <filesystem>
 #include <string>
 
 #if defined(_WIN32)
@@ -76,11 +77,19 @@ int LoadHostfxr() {
 
 namespace {
 
-/// 取路径里的目录部分。Windows 与 Linux 的分隔符都处理。
+/// 取路径里的目录部分，并做成绝对路径。Windows 与 Linux 的分隔符都处理。
+///
+/// 绝对这一步不能省：父级给过来的路径往往是相对的（LeviLamina 的 mods 根就是 `./plugins`），
+/// 而基目录按约定必须是绝对路径 —— 托管侧拿它去建 PhysicalFileProvider 之类的对象时，
+/// 相对路径会直接抛异常。补在**这里**，因为这是所有载体共用的那一步。
 std::basic_string<char_t> DirectoryOf(const char_t* path) {
     std::basic_string<char_t> text = path == nullptr ? std::basic_string<char_t>() : std::basic_string<char_t>(path);
     const size_t separator = text.find_last_of(CHARTEXT("/\\"));
-    return separator == std::basic_string<char_t>::npos ? std::basic_string<char_t>() : text.substr(0, separator);
+    if (separator == std::basic_string<char_t>::npos) {
+        return {};
+    }
+
+    return std::filesystem::absolute(std::filesystem::path{text.substr(0, separator)}).native();
 }
 
 }  // namespace

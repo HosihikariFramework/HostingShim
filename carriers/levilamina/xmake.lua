@@ -14,7 +14,8 @@ target("HosihikariShim")
     set_kind("shared")
     -- LeviLamina 的头文件用了 std::to_underlying，那是 C++23 才进的标准库。
     set_languages("c++23")
-    set_basename("Hosihikari.Shim.LeviLamina")
+    -- 产物名就是父级那边的 mod 名（ADR-0006）：目录、清单 name、入口文件名三者一致。
+    set_basename("hosihikari")
 
     add_cxflags("/utf-8", "/W4")
     add_defines("NOMINMAX", "UNICODE", "_UNICODE")

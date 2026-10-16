@@ -61,31 +61,47 @@ bool ShimMod::load() {
         std::printf("[Hosihikari] 拿不到本模组，加载中止\n");
         return false;
     }
-    auto const& logger = self->getLogger();
-    auto const  dir    = self->getModDir();
+    auto const& logger   = self->getLogger();
+    auto const  dir      = self->getModDir();
+    auto const  assembly = dir / L"Hosihikari.PluginManager.dll";
+    // 三个入口都住在同一个类型上，取法也一样。
+    constexpr auto entryType = L"Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager";
 
     logger.info("正在把 CLR 托管进 BDS 进程");
-    component_entry_point_fn entry = nullptr;
+    component_entry_point_fn start = nullptr;
     const int                code  = hosihikari::shim::StartRuntime(
         (dir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
-        (dir / L"Hosihikari.PluginManager.dll").c_str(),
-        L"Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager",
+        assembly.c_str(),
+        entryType,
         // 父级态入口：插件由 LeviLamina 按 type 路由过来，我们不扫 plugins/（ADR-0003）。
         L"StartUnderParent",
-        &entry
+        &start
     );
-    if (code != 0 || entry == nullptr) {
+    if (code != 0 || start == nullptr) {
         logger.error("启动序列失败：0x{:08X}", static_cast<unsigned>(code));
         return false;
     }
 
-    if (const int managed = entry(nullptr, 0); managed != 0) {
+    if (const int managed = start(nullptr, 0); managed != 0) {
         logger.error("托管入口返回 {}", managed);
         return false;
     }
 
+    // 父级交付插件、父级收回插件 —— 各要一个入口（ADR-0003）。
+    component_entry_point_fn loadPlugin   = nullptr;
+    component_entry_point_fn unloadPlugin = nullptr;
+    auto const fetch = [&](wchar_t const* method, component_entry_point_fn* slot) {
+        return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
+    };
+    if (fetch(L"LoadPlugin", &loadPlugin) != 0 || fetch(L"UnloadPlugin", &unloadPlugin) != 0) {
+        logger.error("取不到插件交付入口");
+        return false;
+    }
+
     // 注册进父级注册表 —— 从这里起，本框架的插件由 LeviLamina 调度（ADR-0003）。
-    if (!ll::mod::ModManagerRegistry::getInstance().addManager(std::make_shared<HosihikariModManager>())) {
+    if (!ll::mod::ModManagerRegistry::getInstance().addManager(
+            std::make_shared<HosihikariModManager>(loadPlugin, unloadPlugin)
+        )) {
         logger.error("注册插件管理器失败");
         return false;
     }

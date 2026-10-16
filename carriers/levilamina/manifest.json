@@ -1,6 +1,6 @@
 {
-  "name": "Hosihikari.Shim.LeviLamina",
-  "entry": "Hosihikari.Shim.LeviLamina.dll",
+  "name": "hosihikari",
+  "entry": "hosihikari.dll",
   "version": "0.1.0",
   "type": "native",
   "author": "Hoshihikari",
