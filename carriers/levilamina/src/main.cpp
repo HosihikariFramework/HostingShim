@@ -38,6 +38,29 @@ ShimMod& getShim() {
     return instance;
 }
 
+/// 父级的日志出口：托管侧的每一行都从这里进父级的日志器（ADR-0007 的出口一侧）。
+/// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
+void logBridge(void* /*user*/, int level, char const* utf8) {
+    auto&             logger  = ll::mod::NativeMod::current()->getLogger();
+    std::string const message = utf8 == nullptr ? std::string{} : std::string{utf8};
+
+    switch (level) {
+    case 1:
+        logger.info(message);
+        break;
+    case 2:
+        logger.warn(message);
+        break;
+    case 3:
+    case 4:
+        logger.error(message);
+        break;
+    default:
+        logger.debug(message);
+        break;
+    }
+}
+
 /// 停用与卸载共用同一条理由。父级把失败原样报给操作者（"The mod cannot be disabled/
 /// unloaded"），原因得由这里补上，否则操作者只看到"不行"。
 bool refuseOffline() {
@@ -82,6 +105,21 @@ bool ShimMod::load() {
         return false;
     }
 
+    auto const fetch = [&](wchar_t const* method, component_entry_point_fn* slot) {
+        return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
+    };
+
+    // 日志出口要在托管入口跑之前交过去 —— 否则启动那几行还落在它自己的控制台上。
+    component_entry_point_fn setLogSink = nullptr;
+    if (fetch(L"SetLogSink", &setLogSink) == 0 && setLogSink != nullptr) {
+        struct LogSink {
+            void (*callback)(void*, int, char const*);
+            void* user;
+        };
+        LogSink sink{&logBridge, nullptr};
+        setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
+    }
+
     if (const int managed = start(nullptr, 0); managed != 0) {
         logger.error("托管入口返回 {}", managed);
         return false;
@@ -89,9 +127,6 @@ bool ShimMod::load() {
 
     // 父级对子插件能做的四件事各要一个入口（ADR-0003）：交付、收回、启用、停用。
     ManagedPluginEntries entries{};
-    auto const fetch = [&](wchar_t const* method, component_entry_point_fn* slot) {
-        return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
-    };
     if (fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
         || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0) {
         logger.error("取不到插件管理入口");

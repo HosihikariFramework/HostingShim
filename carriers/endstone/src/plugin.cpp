@@ -10,6 +10,35 @@
 namespace hosihikari::shim::endstone_carrier {
 namespace {
 
+/// 父级的日志出口：托管侧的每一行都从这里进 Endstone 的日志器（ADR-0007 的出口一侧）。
+/// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
+///
+/// 日志器是插件的实例成员，而这是个 C 回调 —— 所以在 onLoad 里把它记下来。
+endstone::Logger* g_logger = nullptr;
+
+void logBridge(void* /*user*/, int level, char const* utf8) {
+    if (g_logger == nullptr) {
+        return;
+    }
+
+    std::string const message = utf8 == nullptr ? std::string{} : std::string{utf8};
+    switch (level) {
+    case 1:
+        g_logger->info(message);
+        break;
+    case 2:
+        g_logger->warning(message);
+        break;
+    case 3:
+    case 4:
+        g_logger->error(message);
+        break;
+    default:
+        g_logger->debug(message);
+        break;
+    }
+}
+
 /// 三个入口都住在同一个类型上，取法也一样。
 constexpr auto kEntryType =
     CHARTEXT("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
@@ -22,6 +51,8 @@ void HosihikariPlugin::onLoad() {
     auto const dataDirectory  = getDataFolder();
     auto const component      = dataDirectory / CHARTEXT("Hosihikari.PluginManager.dll");
     auto const runtimeConfig  = dataDirectory / CHARTEXT("Hosihikari.PluginManager.runtimeconfig.json");
+
+    g_logger = &getLogger();
 
     getLogger().info("正在把 CLR 托管进 BDS 进程");
     component_entry_point_fn start = nullptr;
@@ -38,6 +69,21 @@ void HosihikariPlugin::onLoad() {
         return;
     }
 
+    auto const fetch = [&](char_t const *method, component_entry_point_fn *slot) {
+        return hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, method, slot);
+    };
+
+    // 日志出口要在托管入口跑之前交过去。
+    component_entry_point_fn setLogSink = nullptr;
+    if (fetch(CHARTEXT("SetLogSink"), &setLogSink) == 0 && setLogSink != nullptr) {
+        struct LogSink {
+            void (*callback)(void*, int, char const*);
+            void* user;
+        };
+        LogSink sink{&logBridge, nullptr};
+        setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
+    }
+
     if (auto const managed = start(nullptr, 0); managed != 0) {
         getLogger().error("托管入口返回 {}", managed);
         return;
@@ -45,9 +91,6 @@ void HosihikariPlugin::onLoad() {
 
     // 父级对子插件能做的四件事各要一个入口（ADR-0003）。
     ManagedPluginEntries entries{};
-    auto const fetch = [&](char_t const *method, component_entry_point_fn *slot) {
-        return hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, method, slot);
-    };
     if (fetch(CHARTEXT("LoadPlugin"), &entries.load) != 0 || fetch(CHARTEXT("UnloadPlugin"), &entries.unload) != 0
         || fetch(CHARTEXT("EnablePlugin"), &entries.enable) != 0
         || fetch(CHARTEXT("DisablePlugin"), &entries.disable) != 0) {
