@@ -98,6 +98,28 @@ cmake --build build --config Release
 
 覆盖不到的是**真机行为**：起服、交付、启停、卸载、重载。那些由 `smoke.ps1` 在本地跑，需要一台真服务端。
 
+## 分发
+
+`tooth.json` 在**仓根**：lip 把 `tooth` 字段整个当成一个 Git 仓库来解析，仓根以下的东西它看不见。
+一份包，两个变体：
+
+| 变体 | 装什么 |
+|---|---|
+| 默认（不带 label） | LeviLamina 载体，落进 `plugins/hosihikari/` |
+| `#endstone` | Endstone 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
+
+```
+lip install github.com/HosihikariFramework/Shim
+lip install github.com/HosihikariFramework/Shim#endstone
+```
+
+发布附件就是两个 `deploy.bat` 铺出来的那一份打成 zip；版本来自 Git tag，所以**要先有标签与对应的
+release 才装得了**。打 `v*` 会跑发布工作流，编出两个载体并附上两个归档。
+
+lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是直接看 git tag —— 所以刚推上去的
+标签要等代理索引到才能装，在那之前 `lip install` 会报 "Failed to find the latest version"。
+上面两个变体就是对着 `v0.1.0` 这样装出来的。
+
 ## 还没做的
 
 另外两个载体目标：Endstone（Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
