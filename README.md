@@ -1,106 +1,129 @@
 # Hosihikari.Shim
 
-星光框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控制权交给核心
-[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement)。
+[English](README.md) | [简体中文](README.zh_hans.md)
 
-它只做四件事：定位 hostfxr、以核心的 `runtimeconfig.json` 初始化运行时、载入核心程序集、取托管入口。
-其余一切（发现、依赖、隔离、生命周期）都在托管侧。
+The **native layer** of the Hosihikari framework: it hosts the CLR inside the BDS process and then
+hands control to the core,
+[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement).
 
-## 这个仓里有什么
+It does four things: locate hostfxr, initialise the runtime from the core's `runtimeconfig.json`,
+load the core assembly, and fetch the managed entry point. Everything else — discovery,
+dependencies, isolation, lifecycle — happens on the managed side.
+
+## What is in this repository
 
 | | |
 |---|---|
-| `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `carriers/` | 各载体的目标：`levilamina/`（xmake）与 `endstone/`（CMake）。其余见「还没做的」 |
-| `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
+| `common/` | The startup sequence — **carrier-independent**; every carrier target compiles this same code |
+| `carriers/` | The carrier targets: `levilamina/` (xmake) and `endstone/` (CMake). See "Not done yet" for the rest |
+| `verify/` | Programs and scaffolding that prove the native → managed hop |
 
-nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
+nethost headers and libraries are **fetched by version from NuGet**, never committed — both the
+carriers and `verify/` download their own copy at build time.
 
-## 跑一遍
+## Running it
 
-### 载体（LeviLamina）
+### Carrier: LeviLamina
 
 ```
 carriers\levilamina\build.bat
-carriers\levilamina\deploy.bat <服务端根目录>
+carriers\levilamina\deploy.bat <server root>
 ```
 
-`build.bat` 自己用 `vswhere` 找 vcvars、接上 clang-cl；出网要走代理的网络请先设好 `https_proxy`
-（脚本不替你设）。产物与清单由上游的 `@levibuildscript/modpacker` 落到 `bin/hosihikari/`，
-`deploy.bat` 再把它与托管核心、nethost.dll 一起铺进 `plugins/hosihikari/`。
+`build.bat` finds vcvars through `vswhere` and puts clang-cl on the path. On networks that need a
+proxy, set `https_proxy` first — the script leaves that to the caller. The artifact and its manifest
+are placed in `bin/hosihikari/` by the upstream `@levibuildscript/modpacker` rule; `deploy.bat` then
+copies them, the managed core and `nethost.dll` into `plugins/hosihikari/`.
 
-真机的一条龙 —— 起服、依次打 `show`/`disable`/`enable`/`unload`/`load`、再断言日志：
+A full live pass — start the server, drive `show`/`disable`/`enable`/`unload`/`load`, then check the
+log:
 
 ```
-powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <服务端根目录>
+powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <server root>
 ```
 
-它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `Hosihikari.PluginManager` checkout。
-需要一台已装好 LeviLamina 的服务端；**它不会去杀别人的服务端**，发现已经在跑就直接报错退出。
+It first runs the managed assertion host (which also produces the plugin packages), so a sibling
+`Hosihikari.PluginManager` checkout is required. It needs a server with LeviLamina already
+installed, and it **will not kill somebody else's server** — if one is already running it stops
+with an error.
 
-`tooth.json` 在**仓根**，一份包两个变体（lip 的 `tooth` 是整个 Git 仓库地址，子目录里的读不到）：
+### Carrier: Endstone
 
-| 变体 | 装什么 |
+```
+carriers\endstone\build.bat
+carriers\endstone\deploy.bat <folder containing bedrock_server.exe>
+endstone -s <folder containing bedrock_server.exe>
+```
+
+Three structural differences from the LeviLamina carrier, all dictated by the parent:
+
+- **Plugins are loaded by file**, so the carrier itself is a single `plugins/hosihikari.dll`; the
+  managed core still lives in `plugins/hosihikari/` (the data folder the parent assigns by plugin
+  name). Our packages are directories, so the loader overrides `loadPlugins`.
+- **`nethost.dll` must sit next to `bedrock_server.exe`**: Endstone loads plugins with a plain
+  `LoadLibrary`, so the shim's own dependency is resolved from the application directory. The
+  LeviLamina carrier has no such problem because that parent adds the mod directory to `PATH`.
+- **Plugin names are normalised**: Endstone accepts `^[a-z0-9_]+$` and forbids a leading `endstone`,
+  so `Bar` appears to the parent as `bar` while the managed side still tracks it by its manifest
+  name.
+
+### Native seam (carrier-independent)
+
+```
+cmake -S verify -B build -G "Visual Studio 18 2026" -A x64
+cmake --build build --config Release
+./build/Release/host-glue.exe <managed output directory>
+```
+
+It walks the startup sequence and calls the managed entry point, reporting each of the four steps.
+Build the managed side first with `dotnet build src/Hosihikari.PluginManager.csproj -c Release`.
+
+`verify/host-dll/` and `verify/injector/` are the same thing inside a **real BDS process**: the
+first builds the startup sequence as a DLL with an exported entry point, the second injects it into a
+suspended `bedrock_server.exe` and calls that export.
+
+> `injector` is **verification scaffolding, not a deliverable**, and is not meant to become a
+> general-purpose injector. It exists because ADR-0022 defers "who loads us in production" (PreLoader
+> only offers `DllMain`, which conflicts with ADR-0016), not "whether we can be loaded".
+
+## What CI covers
+
+- **The three `verify/` targets** (host-glue, host-dll, injector) build on `windows-latest`.
+- **`carriers/levilamina/`** builds on `windows-latest`. It pins the LLVM version and caches
+  `~/AppData/Local/.xmake`: upstream's `levilamina` package ships no prebuilt binaries, so the first
+  run compiles LeviLamina from source (about ten minutes) and later runs reuse the cache.
+- **`carriers/endstone/`** builds on `windows-latest` in about a minute — its SDK is a header-only
+  interface library, so only our own code is compiled.
+
+What CI cannot cover is **live behaviour**: starting the server, delivery, enable/disable, unload,
+reload. `smoke.ps1` covers that locally against a real server.
+
+## Distribution
+
+`tooth.json` sits at the **repository root**: lip resolves the `tooth` field as a whole Git
+repository, so anything below the root is invisible to it. One package, two variants:
+
+| Variant | What it installs |
 |---|---|
-| 默认（不带 label） | LeviLamina 载体，落进 `plugins/hosihikari/` |
-| `#endstone` | Endstone 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 进服务端根目录 |
+| default (no label) | The LeviLamina carrier into `plugins/hosihikari/` |
+| `#endstone` | The Endstone carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
 
 ```
 lip install github.com/HosihikariFramework/Shim
 lip install github.com/HosihikariFramework/Shim#endstone
 ```
 
-发布附件的内容分别就是两个 `deploy.bat` 铺出来的那一份，打成 zip；版本号来自 git tag，
-所以**要能被装，仓库得先有 tag 与对应的 release**。
+The release assets are exactly what the two `deploy.bat` scripts lay out, zipped; the version comes
+from a Git tag, so **a tag and a matching release are required before any of this can be installed**.
+Tagging `v*` runs the release workflow that builds both carriers and attaches both archives.
 
-### 载体（Endstone）
+## Not done yet
 
-```
-carriers\endstone\build.bat
-carriers\endstone\deploy.bat <bedrock_server 所在目录>
-endstone -s <bedrock_server 所在目录>
-```
+Two carrier targets: Endstone on Linux, and self-hosted Linux. `common/` is already in place; each
+of them only has to attach its own entry point (the parent's C++ subclass / the `EntryPoint` symbol /
+the `__libc_start_main` interception) and satisfy that parent's expectations about manifests and
+builds.
 
-与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
+## Licence
 
-- **插件是按文件加载的**，所以载体本身是 `plugins/hosihikari.dll` 一个文件；托管核心仍在
-  `plugins/hosihikari/`（父级按插件名给的数据目录）。我们的包是目录，因此覆盖了 `loadPlugins`。
-- **`nethost.dll` 必须放在服务端根目录**：Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 +
-  当前目录"找；LeviLamina 那边是父级把 mod 目录加进了 PATH，这里没有这待遇。
-- **插件名会被规范化**：Endstone 只接受 `^[a-z0-9_]+$` 且不以 `endstone` 开头，所以 `Bar` 在父级
-  那边叫 `bar`，托管侧仍按清单里的名字记账。
-
-### 原生缝（与载体无关）
-
-```
-cmake -S verify -B build -G "Visual Studio 18 2026" -A x64
-cmake --build build --config Release
-./build/Release/host-glue.exe <托管侧输出目录>
-```
-
-它会走完启动序列并调用托管的入口，四步各自报告成败。托管侧先用
-`dotnet build src/Hosihikari.PluginManager.csproj -c Release` 编出来。
-
-`verify/host-dll/` 与 `verify/injector/` 是同一件事在**真实 BDS 进程里**的版本：前者把启动序列编成一个
-导出入口的 DLL，后者把它注入一个挂起启动的 `bedrock_server.exe`，再显式调那个导出。
-
-> `injector` 是**验证脚手架，不是交付物**，也不打算做成通用注入器 —— 它存在的唯一理由是
-> ADR-0022 暂缓的是"生产里谁加载我们"（PreLoader 只给 `DllMain`，与 ADR-0016 冲突），而不是
-> "能不能被加载"。要把它用在别处，先想清楚这一点。
-
-## CI 覆盖到哪
-
-- **`verify/` 的三个目标**（host-glue / host-dll / injector）在 `windows-latest` 上编出来。
-- **`carriers/levilamina/`** 在 `windows-latest` 上编出来。它钉住 LLVM 版本，并缓存 `~/AppData/Local/.xmake`：
-  上游的 `levilamina` 包没有预编译体，第一次会把 LeviLamina 从源码编一遍（约十分钟），之后走缓存。
-
-覆盖不到的是**真机行为**：起服、交付、启停、卸载、重载。那些由 `smoke.ps1` 在本地跑，需要一台真服务端。
-
-## 还没做的
-
-另外两个载体目标：Endstone（Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
-接上自己的入口（父级 C++ 子类 / `EntryPoint` 符号 / `__libc_start_main` 拦截），并满足父级对清单与构建的要求。
-
-## 许可
-
-LGPL-3.0-or-later，见 [LICENSE.md](LICENSE.md)。
+LGPL-3.0-or-later, see [LICENSE.md](LICENSE.md).
