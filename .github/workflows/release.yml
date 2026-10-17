@@ -1,0 +1,98 @@
+name: release
+
+# 发布是刻意的动作：这个工作流只在打标签时跑。标签也决定 tooth.json 里的 {{version}}，
+# 所以两者必须是同一个名字（v0.1.0 ↔ "version": "0.1.0"）。
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  assets:
+    name: 两个载体的发布附件
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Shim
+
+      # 托管核心在另一个仓。两个 deploy 脚本按 `..\..\..\Hosihikari.PluginManager` 找它，
+      # 所以两份 checkout 的目录名与相对位置要照着摆。
+      - uses: actions/checkout@v4
+        with:
+          repository: HosihikariFramework/PluginManagement
+          path: Hosihikari.PluginManager
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 托管核心
+        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/.xmake
+          key: xmake-${{ hashFiles('Shim/carriers/levilamina/xmake.lua') }}
+          restore-keys: xmake-
+
+      - name: 构建 LeviLamina 载体
+        shell: cmd
+        working-directory: Shim
+        run: carriers\levilamina\build.bat
+
+      - name: 构建 Endstone 载体
+        shell: cmd
+        working-directory: Shim
+        run: carriers\endstone\build.bat
+
+      # 用各自的 deploy 脚本铺到空目录：铺出来的就是 tooth.json 里 placement 期望的形状，
+      # 发布物与本地部署因此不会悄悄分叉。
+      - name: 装配两个附件
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          $out  = Join-Path $root 'out'
+          New-Item -ItemType Directory -Force $out | Out-Null
+
+          & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina"
+          & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone"
+
+          # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
+          # 这样 zip 顶层不会多出一层 ./ 或目录名。
+          & tar -a -c -f "$out\hosihikari-levilamina-windows-x64.zip" `
+                -C "$root\stage-levilamina\plugins" hosihikari
+          if ($LASTEXITCODE -ne 0) { throw 'packaging the LeviLamina variant failed' }
+
+          # Endstone 那份的顶层是三样东西，分处两个目录 —— 先摆成一个只含这三样的目录。
+          $zipRoot = Join-Path $root 'ziproot-endstone'
+          New-Item -ItemType Directory -Force $zipRoot | Out-Null
+          Copy-Item "$root\stage-endstone\plugins\hosihikari.dll" $zipRoot
+          Copy-Item "$root\stage-endstone\nethost.dll" $zipRoot
+          Copy-Item -Recurse "$root\stage-endstone\plugins\hosihikari" $zipRoot
+
+          & tar -a -c -f "$out\hosihikari-endstone-windows-x64.zip" `
+                -C $zipRoot hosihikari.dll nethost.dll hosihikari
+          if ($LASTEXITCODE -ne 0) { throw 'packaging the Endstone variant failed' }
+
+          Get-ChildItem $out | Select-Object Name, Length
+
+      - name: 发 release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            "$env:GITHUB_WORKSPACE/out/hosihikari-levilamina-windows-x64.zip" `
+            "$env:GITHUB_WORKSPACE/out/hosihikari-endstone-windows-x64.zip" `
+            --title "${{ github.ref_name }}" --generate-notes
