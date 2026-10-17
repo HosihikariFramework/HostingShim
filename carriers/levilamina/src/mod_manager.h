@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string_view>
 
 #include "coreclr_delegates.h"
@@ -10,6 +11,15 @@
 
 namespace hosihikari::shim::levilamina {
 
+/// 托管侧交给载体的那几个入口。取法都一样，装在一起传，
+/// 免得构造函数变成一长串同类型的指针。
+struct ManagedPluginEntries {
+    component_entry_point_fn load;
+    component_entry_point_fn unload;
+    component_entry_point_fn enable;
+    component_entry_point_fn disable;
+};
+
 /// 把本框架的插件集交给 LeviLamina 的注册表（ADR-0003）：
 /// 每个子插件以 LeviLamina mod 的身份存在、由 LeviLamina 调度，我们只做协议转换与后端。
 ///
@@ -17,15 +27,13 @@ namespace hosihikari::shim::levilamina {
 /// 而插件声明了对本 mod 的依赖，所以计划会先排我们（ADR-0006）。
 class HosihikariModManager : public ll::mod::ModManager {
 public:
-    /// 两个托管入口由载体在启动时取好交进来 —— 这里只做转发。
-    HosihikariModManager(component_entry_point_fn load, component_entry_point_fn unload);
+    explicit HosihikariModManager(ManagedPluginEntries entries);
 
 private:
     ll::Expected<> load(ll::mod::Manifest manifest) override;
     ll::Expected<> unload(std::string_view name) override;
 
-    component_entry_point_fn mLoad;
-    component_entry_point_fn mUnload;
+    ManagedPluginEntries mEntries;
 };
 
 }  // namespace hosihikari::shim::levilamina

@@ -3,6 +3,6 @@
   "entry": "hosihikari.dll",
   "version": "0.1.0",
   "type": "native",
-  "author": "Hoshihikari",
-  "description": "Hosihikari 框架的 Shim：把 CLR 托管进 BDS，并把插件管理器注册给 LeviLamina"
+  "author": "星光",
+  "description": "星光框架的 Shim：把 CLR 托管进 BDS，并把插件管理器注册给 LeviLamina"
 }

@@ -87,21 +87,19 @@ bool ShimMod::load() {
         return false;
     }
 
-    // 父级交付插件、父级收回插件 —— 各要一个入口（ADR-0003）。
-    component_entry_point_fn loadPlugin   = nullptr;
-    component_entry_point_fn unloadPlugin = nullptr;
+    // 父级对子插件能做的四件事各要一个入口（ADR-0003）：交付、收回、启用、停用。
+    ManagedPluginEntries entries{};
     auto const fetch = [&](wchar_t const* method, component_entry_point_fn* slot) {
         return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
     };
-    if (fetch(L"LoadPlugin", &loadPlugin) != 0 || fetch(L"UnloadPlugin", &unloadPlugin) != 0) {
-        logger.error("取不到插件交付入口");
+    if (fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
+        || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0) {
+        logger.error("取不到插件管理入口");
         return false;
     }
 
     // 注册进父级注册表 —— 从这里起，本框架的插件由 LeviLamina 调度（ADR-0003）。
-    if (!ll::mod::ModManagerRegistry::getInstance().addManager(
-            std::make_shared<HosihikariModManager>(loadPlugin, unloadPlugin)
-        )) {
+    if (!ll::mod::ModManagerRegistry::getInstance().addManager(std::make_shared<HosihikariModManager>(entries))) {
         logger.error("注册插件管理器失败");
         return false;
     }
