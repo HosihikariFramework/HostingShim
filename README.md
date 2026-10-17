@@ -47,6 +47,18 @@ It first runs the managed assertion host (which also produces the plugin package
 installed, and it **will not kill somebody else's server** — if one is already running it stops
 with an error.
 
+The Endstone carrier has its own live pass. It starts the server through the Endstone CLI, which
+injects the runtime into the vanilla `bedrock_server.exe`; the CLI and Node must be available:
+
+```
+powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone server root>
+```
+
+It stages the provider package and two Node plugins, drives `plugins` / `endstone:disable` /
+`endstone:enable` / `stop`, and checks the plugin files, the crash fault and the carrier's removal
+warning. The CLI is looked up at `%TEMP%\endstone-venv\Scripts\endstone.exe`, then `ENDSTONE_EXE`,
+then PATH.
+
 ### Carrier: Endstone
 
 ```

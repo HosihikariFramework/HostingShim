@@ -40,6 +40,17 @@ powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <服务端根目录>
 它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `Hosihikari.PluginManager` checkout。
 需要一台已装好 LeviLamina 的服务端；**它不会去杀别人的服务端**，发现已经在跑就直接报错退出。
 
+Endstone 载体另有一条真机路径。它通过 Endstone CLI 启动服务端（CLI 负责把运行时注入原版
+`bedrock_server.exe`），需要 CLI 与 Node：
+
+```
+powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone 服务端根目录>
+```
+
+它铺 Provider 包与两个 Node 插件，依次打 `plugins` / `endstone:disable` / `endstone:enable` /
+`stop`，断言插件写出的文件、崩溃故障与载体的移除告警。CLI 默认找
+`%TEMP%\endstone-venv\Scripts\endstone.exe`，也可以用 `ENDSTONE_EXE` 指。
+
 `tooth.json` 在**仓根**，一份包两个变体（lip 的 `tooth` 是整个 Git 仓库地址，子目录里的读不到）：
 
 | 变体 | 装什么 |

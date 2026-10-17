@@ -123,7 +123,9 @@ endstone::Plugin *HosihikariPluginLoader::loadPlugin(std::string file) {
         // 而嵌套的这一轮 loadPlugins 只看本轮候选，"已加载"不算数 —— 留着会被判成
         // 未知依赖，整个插件被剔掉。顺序由"我们在父级的 onLoad 里才发起这一轮"保证。
         if (!dependencyName.empty() && dependencyName != kRoutingType) {
-            builder.depend.push_back(std::move(dependencyName));
+            // 父级看到的插件名经过 endstoneName 规范化；依赖名必须用同一个形状，
+            // 否则 hosihikari-rpc 与 hosihikari_rpc 对不上，依赖图排不出来。
+            builder.depend.push_back(endstoneName(dependencyName));
         }
     }
 
