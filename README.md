@@ -117,6 +117,11 @@ The release assets are exactly what the two `deploy.bat` scripts lay out, zipped
 from a Git tag, so **a tag and a matching release are required before any of this can be installed**.
 Tagging `v*` runs the release workflow that builds both carriers and attaches both archives.
 
+lip resolves versions through the **Go module proxy** (`proxy.golang.org`), not git tags directly,
+so a freshly pushed tag takes a while to become installable: until the proxy indexes it,
+`lip install` reports "Failed to find the latest version". Both variants above were installed this
+way against the `v0.1.0` release.
+
 ## Not done yet
 
 Two carrier targets: Endstone on Linux, and self-hosted Linux. `common/` is already in place; each
