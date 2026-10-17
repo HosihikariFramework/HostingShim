@@ -38,6 +38,11 @@ powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <服务端根目录>
 它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `Hosihikari.PluginManager` checkout。
 需要一台已装好 LeviLamina 的服务端；**它不会去杀别人的服务端**，发现已经在跑就直接报错退出。
 
+`tooth.json` 是 lip 的包元数据（`lip install github.com/HosihikariFramework/Shim`）：它声明依赖
+LeviLamina，并把发布附件里的 `hosihikari/` 整个铺到 `plugins/hosihikari/`。附件的内容就是
+`deploy.bat` 铺出来的那一份（Shim、清单、`nethost.dll`、托管核心），打成 zip 且顶层目录名为
+`hosihikari/`。
+
 ### 原生缝（与载体无关）
 
 ```
