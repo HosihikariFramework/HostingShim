@@ -1,5 +1,7 @@
 @echo off
-REM Build this carrier from a plain Windows shell.
+REM Build this carrier. Works on a dev box and on a CI runner alike: the VS
+REM toolchain is located with vswhere, and the proxy is left to the caller --
+REM set https_proxy/http_proxy before invoking on networks that need one.
 REM
 REM Two things this script exists to fix:
 REM   1. Do not run it from Git Bash -- the MSYS PATH makes xmake resolve cc/cxx
@@ -11,10 +13,19 @@ REM
 REM Keep this file ASCII only: cmd reads it in the system codepage (GBK here),
 REM and non-ASCII bytes corrupt the following lines.
 setlocal
-call "C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
-set "PATH=C:\Program Files\LLVM\bin;%PATH%"
-set "https_proxy=http://127.0.0.1:7890"
-set "http_proxy=http://127.0.0.1:7890"
+
+REM Locate any VS with the C++ toolset. Every VS install ships vswhere.
+set "VCVARS="
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VCVARS=%%i\VC\Auxiliary\Build\vcvars64.bat"
+if not defined VCVARS (
+    echo WARNING: no Visual Studio with the C++ toolset found; clang-cl needs its STL.
+) else (
+    call "%VCVARS%" >nul 2>&1
+)
+
+REM clang-cl lives in LLVM's bin; both this machine and the runners put it there.
+if exist "C:\Program Files\LLVM\bin\clang-cl.exe" set "PATH=C:\Program Files\LLVM\bin;%PATH%"
 
 cd /d "%~dp0"
 xmake f -y -p windows -a x64 -m release --toolchain=clang-cl || exit /b 1

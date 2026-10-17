@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 两件事分开跑：载体是最终产物，原生缝是它与托管侧之间的证明。
+# 都不跑 BDS —— 真机行为在本地验，见 carriers/levilamina/deploy.bat。
+jobs:
+  carrier:
+    name: 载体（LeviLamina / Windows）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.1.1
+
+      # vcvars 由脚本用 vswhere 自己找，clang-cl 随 runner 的 LLVM 一起来。
+      # 依赖从 liteldev 的 xmake-repo 与 nuget.org 取，两者公网可达。
+      - name: 构建
+        shell: cmd
+        run: carriers\levilamina\build.bat
+
+  seam:
+    name: 原生缝（host-glue / host-dll / injector）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      # nethost 由 CMake 自己按版本从 nuget.org 取，不随仓带二进制。
+      - name: 配置
+        run: cmake -S verify -B verify/build -A x64
+
+      - name: 构建
+        run: cmake --build verify/build --config Release
