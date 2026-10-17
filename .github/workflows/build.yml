@@ -21,6 +21,21 @@ jobs:
       - name: 构建
         run: cmake --build verify/build --config Release
 
+  # Endstone 的 SDK 是纯头文件的 INTERFACE 库，这里只编我们自己的代码 —— 比 LeviLamina
+  # 那个 job 轻得多（那边要把上游从源码编一遍）。
+  carrier-endstone:
+    name: 载体（Endstone / Windows）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      # endstone 与 nlohmann_json 由 CMake 浅克隆，nethost 从 nuget.org 取。
+      - name: 构建
+        shell: cmd
+        run: carriers\endstone\build.bat
+
   # 载体这一步照官方模版（LiteLDev/levilamina-mod-template）的做法来：
   #   1. 钉住 LLVM 版本 —— liteldev 的 xmake-repo 没有 levilamina 的预编译包，装它等于
   #      在 runner 上把 LeviLamina 从源码编一遍，而它挑 clang 版本；runner 自带的那个
