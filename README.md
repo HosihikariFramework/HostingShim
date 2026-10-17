@@ -1,6 +1,6 @@
 # Hosihikari.Shim
 
-Hosihikari 框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控制权交给核心
+星光框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控制权交给核心
 [`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement)。
 
 它只做四件事：定位 hostfxr、以核心的 `runtimeconfig.json` 初始化运行时、载入核心程序集、取托管入口。

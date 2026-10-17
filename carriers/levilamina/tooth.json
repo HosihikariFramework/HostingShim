@@ -4,8 +4,8 @@
   "tooth": "github.com/HosihikariFramework/Shim",
   "version": "0.1.0",
   "info": {
-    "name": "Hosihikari",
-    "description": "把 CLR 托管进 BDS，并把插件管理交给 Hosihikari 核心",
+    "name": "星光",
+    "description": "把 CLR 托管进 BDS，并把插件管理交给星光框架核心",
     "tags": [
       "platform:levilamina",
       "type:mod"
