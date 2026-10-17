@@ -1,0 +1,82 @@
+{
+  "format_version": 3,
+  "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
+  "tooth": "github.com/HosihikariFramework/Shim",
+  "version": "0.1.0",
+  "info": {
+    "name": "星光",
+    "description": "把 CLR 托管进 BDS，并把插件管理交给星光框架核心",
+    "tags": [
+      "platform:levilamina",
+      "platform:endstone",
+      "type:mod"
+    ],
+    "avatar_url": ""
+  },
+  "variants": [
+    {
+      "label": "",
+      "platform": "win-x64",
+      "dependencies": {
+        "github.com/LiteLDev/LeviLamina": "26.51.*"
+      },
+      "assets": [
+        {
+          "type": "zip",
+          "urls": [
+            "https://{{tooth}}/releases/download/v{{version}}/hosihikari-levilamina-windows-x64.zip"
+          ],
+          "placements": [
+            {
+              "type": "dir",
+              "src": "hosihikari/",
+              "dest": "plugins/hosihikari/"
+            }
+          ]
+        }
+      ],
+      "preserve_files": [],
+      "remove_files": [],
+      "scripts": {
+        "post_install": [],
+        "pre_uninstall": []
+      }
+    },
+    {
+      "label": "endstone",
+      "platform": "win-x64",
+      "dependencies": {},
+      "assets": [
+        {
+          "type": "zip",
+          "urls": [
+            "https://{{tooth}}/releases/download/v{{version}}/hosihikari-endstone-windows-x64.zip"
+          ],
+          "placements": [
+            {
+              "type": "file",
+              "src": "endstone_hosihikari.dll",
+              "dest": "plugins/endstone_hosihikari.dll"
+            },
+            {
+              "type": "file",
+              "src": "nethost.dll",
+              "dest": "nethost.dll"
+            },
+            {
+              "type": "dir",
+              "src": "hosihikari/",
+              "dest": "plugins/hosihikari/"
+            }
+          ]
+        }
+      ],
+      "preserve_files": [],
+      "remove_files": [],
+      "scripts": {
+        "post_install": [],
+        "pre_uninstall": []
+      }
+    }
+  ]
+}
