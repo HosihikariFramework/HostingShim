@@ -61,6 +61,16 @@ void logBridge(void* /*user*/, int level, char const* utf8) {
     }
 }
 
+/// 故障卸载后托管侧回叫这里：把父级账上的那一条摘掉（ADR-0030）。
+/// user 是 `HosihikariModManager*`，名字是 UTF-8、以 null 结尾。
+void removalBridge(void* user, char const* nameUtf8) {
+    auto* manager = static_cast<HosihikariModManager*>(user);
+    if (manager == nullptr || nameUtf8 == nullptr) {
+        return;
+    }
+    manager->removeFromParent(nameUtf8);
+}
+
 /// 停用与卸载共用同一条理由。父级把失败原样报给操作者（"The mod cannot be disabled/
 /// unloaded"），原因得由这里补上，否则操作者只看到"不行"。
 bool refuseOffline() {
@@ -134,9 +144,21 @@ bool ShimMod::load() {
     }
 
     // 注册进父级注册表 —— 从这里起，本框架的插件由 LeviLamina 调度（ADR-0003）。
-    if (!ll::mod::ModManagerRegistry::getInstance().addManager(std::make_shared<HosihikariModManager>(entries))) {
+    auto manager = std::make_shared<HosihikariModManager>(entries);
+    if (!ll::mod::ModManagerRegistry::getInstance().addManager(manager)) {
         logger.error("注册插件管理器失败");
         return false;
+    }
+
+    // 故障卸载成功后托管侧回叫这里，把父级账上的那一条摘掉（ADR-0030）。
+    component_entry_point_fn setRemovalSink = nullptr;
+    if (fetch(L"SetRemovalSink", &setRemovalSink) == 0 && setRemovalSink != nullptr) {
+        struct RemovalSink {
+            void (*callback)(void*, char const*);
+            void* user;
+        };
+        RemovalSink sink{&removalBridge, manager.get()};
+        setRemovalSink(reinterpret_cast<char*>(&sink), sizeof(sink));
     }
 
     logger.info("已接管：CLR 就绪，插件管理器已注册");

@@ -58,6 +58,8 @@ ll::Expected<> HosihikariModManager::load(ll::mod::Manifest manifest) {
     return {};
 }
 
+void HosihikariModManager::removeFromParent(std::string_view name) { eraseMod(name); }
+
 ll::Expected<> HosihikariModManager::unload(std::string_view name) {
     // 托管侧的答案只有两种：回收验证过了，或者放下了但还没通过。后者如实报失败 ——
     // 它确实还没卸干净，而再问一次就是重新验证（ADR-0004）。

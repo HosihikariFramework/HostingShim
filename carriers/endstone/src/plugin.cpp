@@ -39,6 +39,18 @@ void logBridge(void* /*user*/, int level, char const* utf8) {
     }
 }
 
+/// 故障卸载后托管侧回叫这里。Endstone 的 PluginManager 没有单条摘除 API，
+/// 只能记日志：父级账上会保留到重启（ADR-0030）。
+void removalBridge(void* /*user*/, char const* nameUtf8) {
+    if (g_logger == nullptr) {
+        return;
+    }
+    g_logger->warning(
+        "{} 已从托管侧移除；Endstone 不支持运行期摘除，父级账上会保留到重启",
+        nameUtf8 == nullptr ? "（未知）" : nameUtf8
+    );
+}
+
 /// 三个入口都住在同一个类型上，取法也一样。
 constexpr auto kEntryType =
     CHARTEXT("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
@@ -100,6 +112,17 @@ void HosihikariPlugin::onLoad() {
 
     auto &manager = getServer().getPluginManager();
     manager.registerLoader(std::make_unique<HosihikariPluginLoader>(getServer(), entries));
+
+    // 故障卸载成功后托管侧回叫这里（ADR-0030）。Endstone 没有单条摘除 API，只记日志。
+    component_entry_point_fn setRemovalSink = nullptr;
+    if (fetch(CHARTEXT("SetRemovalSink"), &setRemovalSink) == 0 && setRemovalSink != nullptr) {
+        struct RemovalSink {
+            void (*callback)(void*, char const*);
+            void* user;
+        };
+        RemovalSink sink{&removalBridge, nullptr};
+        setRemovalSink(reinterpret_cast<char*>(&sink), sizeof(sink));
+    }
 
     // 父级已经收完了这一轮的候选（我们是它加载的插件之一），所以新 loader 不会被它回头再问。
     // 这里主动发起一轮只包含我们这些包的加载：按文件名解析会落到刚注册的 loader 上，

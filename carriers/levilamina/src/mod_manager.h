@@ -29,6 +29,9 @@ class HosihikariModManager : public ll::mod::ModManager {
 public:
     explicit HosihikariModManager(ManagedPluginEntries entries);
 
+    /// <summary>故障卸载后由托管侧回调：把父级账上的那一条摘掉（ADR-0030）。</summary>
+    void removeFromParent(std::string_view name);
+
 private:
     ll::Expected<> load(ll::mod::Manifest manifest) override;
     ll::Expected<> unload(std::string_view name) override;
