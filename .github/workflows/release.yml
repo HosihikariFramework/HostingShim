@@ -92,7 +92,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # workspace 根不是 git 仓库（两份 checkout 各在自己的子目录里），
+          # 所以仓库要显式给：否则 --generate-notes 找不到上下文。
           gh release create "${{ github.ref_name }}" `
             "$env:GITHUB_WORKSPACE/out/hosihikari-levilamina-windows-x64.zip" `
             "$env:GITHUB_WORKSPACE/out/hosihikari-endstone-windows-x64.zip" `
+            --repo "${{ github.repository }}" `
             --title "${{ github.ref_name }}" --generate-notes
