@@ -11,7 +11,7 @@
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `carriers/` | 各载体的目标。目前有 `levilamina/`，其余见「还没做的」 |
+| `carriers/` | 各载体的目标：`levilamina/`（xmake）与 `endstone/`（CMake）。其余见「还没做的」 |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
 nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
@@ -43,6 +43,23 @@ LeviLamina，并把发布附件里的 `hosihikari/` 整个铺到 `plugins/hosihi
 `deploy.bat` 铺出来的那一份（Shim、清单、`nethost.dll`、托管核心），打成 zip 且顶层目录名为
 `hosihikari/`。
 
+### 载体（Endstone）
+
+```
+carriers\endstone\build.bat
+carriers\endstone\deploy.bat <bedrock_server 所在目录>
+endstone -s <bedrock_server 所在目录>
+```
+
+与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
+
+- **插件是按文件加载的**，所以载体本身是 `plugins/endstone_hosihikari.dll` 一个文件；托管核心仍在
+  `plugins/hosihikari/`（父级按插件名给的数据目录）。我们的包是目录，因此覆盖了 `loadPlugins`。
+- **`nethost.dll` 必须放在服务端根目录**：Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 +
+  当前目录"找；LeviLamina 那边是父级把 mod 目录加进了 PATH，这里没有这待遇。
+- **插件名会被规范化**：Endstone 只接受 `^[a-z0-9_]+$` 且不以 `endstone` 开头，所以 `Bar` 在父级
+  那边叫 `bar`，托管侧仍按清单里的名字记账。
+
 ### 原生缝（与载体无关）
 
 ```
@@ -71,7 +88,7 @@ cmake --build build --config Release
 
 ## 还没做的
 
-另外三个载体目标：Endstone plugin（Windows 与 Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
+另外两个载体目标：Endstone（Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
 接上自己的入口（父级 C++ 子类 / `EntryPoint` 符号 / `__libc_start_main` 拦截），并满足父级对清单与构建的要求。
 
 ## 许可

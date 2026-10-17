@@ -1,0 +1,93 @@
+#include "plugin.h"
+
+#include <filesystem>
+#include <memory>
+#include <string>
+
+#include "dotnet.h"
+#include "loader.h"
+
+namespace hosihikari::shim::endstone_carrier {
+namespace {
+
+/// 三个入口都住在同一个类型上，取法也一样。
+constexpr auto kEntryType =
+    CHARTEXT("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
+
+}  // namespace
+
+void HosihikariPlugin::onLoad() {
+    // 托管核心与 nethost.dll 都住在数据目录里（`plugins/hosihikari/`）——
+    // 数据目录由父级按"插件名"给，不用自己去猜模块路径。
+    auto const dataDirectory  = getDataFolder();
+    auto const component      = dataDirectory / CHARTEXT("Hosihikari.PluginManager.dll");
+    auto const runtimeConfig  = dataDirectory / CHARTEXT("Hosihikari.PluginManager.runtimeconfig.json");
+
+    getLogger().info("正在把 CLR 托管进 BDS 进程");
+    component_entry_point_fn start = nullptr;
+    if (auto const code = hosihikari::shim::StartRuntime(
+            runtimeConfig.c_str(),
+            component.c_str(),
+            kEntryType,
+            // 父级态入口：插件集归 Endstone，我们不扫目录（ADR-0003）。
+            CHARTEXT("StartUnderParent"),
+            &start
+        );
+        code != 0 || start == nullptr) {
+        getLogger().error("启动序列失败：0x{:08X}", static_cast<unsigned>(code));
+        return;
+    }
+
+    if (auto const managed = start(nullptr, 0); managed != 0) {
+        getLogger().error("托管入口返回 {}", managed);
+        return;
+    }
+
+    // 父级对子插件能做的四件事各要一个入口（ADR-0003）。
+    ManagedPluginEntries entries{};
+    auto const fetch = [&](char_t const *method, component_entry_point_fn *slot) {
+        return hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, method, slot);
+    };
+    if (fetch(CHARTEXT("LoadPlugin"), &entries.load) != 0 || fetch(CHARTEXT("UnloadPlugin"), &entries.unload) != 0
+        || fetch(CHARTEXT("EnablePlugin"), &entries.enable) != 0
+        || fetch(CHARTEXT("DisablePlugin"), &entries.disable) != 0) {
+        getLogger().error("取不到插件管理入口");
+        return;
+    }
+
+    auto &manager = getServer().getPluginManager();
+    manager.registerLoader(std::make_unique<HosihikariPluginLoader>(getServer(), entries));
+
+    // 父级已经收完了这一轮的候选（我们是它加载的插件之一），所以新 loader 不会被它回头再问。
+    // 这里主动发起一轮只包含我们这些包的加载：按文件名解析会落到刚注册的 loader 上，
+    // 它返回托管插件，再由父级自己的依赖图排序、装载。
+    auto const packages = collectPackageDirectories(dataDirectory.parent_path());
+    if (packages.empty()) {
+        getLogger().info("已接管：CLR 就绪，尚无插件");
+        return;
+    }
+
+    auto const loaded = manager.loadPlugins(packages);
+    getLogger().info("已接管：CLR 就绪，{} 个插件", loaded.size());
+}
+
+void HosihikariPlugin::onEnable() {
+    // 不用做事：托管核心在 onLoad 里就起来了，子插件的启停由父级按自己的节奏驱动。
+}
+
+void HosihikariPlugin::onDisable() {
+    // ADR-0024：停用退不回去 —— CLR 已经在进程里。但 Endstone 的 onDisable 没有失败通道
+    // （`void`，不像 LeviLamina 那样能拒绝），所以只能把理由写进日志。
+    getLogger().warning(
+        "框架停用做不到：CLR 已经托管进这个进程，.NET 不卸载运行时。要停框架请停用它的插件，要移除它请重启服务端"
+    );
+}
+
+}  // namespace hosihikari::shim::endstone_carrier
+
+ENDSTONE_PLUGIN("hosihikari", "0.1.0", hosihikari::shim::endstone_carrier::HosihikariPlugin)
+{
+    prefix      = "Hosihikari";
+    description = "把 CLR 托管进 BDS，并把插件管理交给星光框架核心";
+    authors     = {"星光"};
+}
