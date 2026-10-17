@@ -5,12 +5,21 @@ add_rules("mode.debug", "mode.release")
 
 add_repositories("liteldev-repo https://github.com/LiteLDev/xmake-repo.git")
 add_requires("levilamina")
+add_requires("levibuildscript")
 
 -- LeviLamina 的 mod 用 /MD，随 SDK 的 libnethost.lib 是 /MT，两者不能混（LNK2038）。
 -- 与父级共用 CRT 是必须的：我们要把 std::string、shared_ptr 递过去（ADR-0005）。
 set_runtimes("MD")
 
 target("HosihikariShim")
+    -- 官方模版的打包规则：产物连同清单落到 bin/<modName>/，清单里的 ${...} 由它填。
+    -- 它只摆 dll、pdb 与清单 —— nethost.dll 与托管核心仍由 deploy.bat 摆。
+    --
+    -- 不用 @levibuildscript/linkrule：那条规则跑 prelink + bedrock_runtime_api，
+    -- 是给直接调 BDS 符号的 mod 用的；我们不调（ADR-0001），本机与 CI 也都没有
+    -- prelink.exe 与 bedrock_runtime_data。
+    add_rules("@levibuildscript/modpacker", {modName = "hosihikari", modVersion = "0.1.0"})
+
     set_kind("shared")
     -- LeviLamina 的头文件用了 std::to_underlying，那是 C++23 才进的标准库。
     set_languages("c++23")

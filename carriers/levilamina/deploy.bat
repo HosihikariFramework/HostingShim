@@ -15,11 +15,11 @@ REM The package name is the shim's mod name in the parent's namespace (ADR-0006)
 set "MODNAME=hosihikari"
 set "HERE=%~dp0"
 set "MANAGED=%HERE%..\..\..\Hosihikari.PluginManager\src\bin\Release\net10.0"
-set "BUILT=%HERE%build\windows\x64\release\%MODNAME%.dll"
+set "PACKED=%HERE%bin\%MODNAME%"
 set "NETHOST=%HERE%build\nethost\runtimes\win-x64\native\nethost.dll"
 set "DST=%~1\plugins\%MODNAME%"
 
-if not exist "%BUILT%" (
+if not exist "%PACKED%\%MODNAME%.dll" (
     echo run build.bat first
     exit /b 1
 )
@@ -31,11 +31,11 @@ if not exist "%MANAGED%\Hosihikari.PluginManager.dll" (
 if exist "%DST%" rmdir /s /q "%DST%"
 mkdir "%DST%"
 
-copy /y "%BUILT%" "%DST%" >nul
+copy /y "%PACKED%\*.dll" "%DST%" >nul
 copy /y "%NETHOST%" "%DST%" >nul
 copy /y "%MANAGED%\*.dll" "%DST%" >nul
 copy /y "%MANAGED%\*.json" "%DST%" >nul
-copy /y "%HERE%manifest.json" "%DST%" >nul
+copy /y "%PACKED%\manifest.json" "%DST%" >nul
 
 echo deployed to %DST%
 endlocal

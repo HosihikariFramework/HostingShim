@@ -2,3 +2,4 @@ build/
 out/
 .xmake/
 verbose.log
+bin/

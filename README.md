@@ -26,7 +26,8 @@ carriers\levilamina\deploy.bat <服务端根目录>
 ```
 
 `build.bat` 自己用 `vswhere` 找 vcvars、接上 clang-cl；出网要走代理的网络请先设好 `https_proxy`
-（脚本不替你设）。`deploy.bat` 把 Shim 与托管核心一起铺进 `plugins/hosihikari/`。
+（脚本不替你设）。产物与清单由上游的 `@levibuildscript/modpacker` 落到 `bin/hosihikari/`，
+`deploy.bat` 再把它与托管核心、nethost.dll 一起铺进 `plugins/hosihikari/`。
 
 真机的一条龙 —— 起服、依次打 `show`/`disable`/`enable`/`unload`/`load`、再断言日志：
 
