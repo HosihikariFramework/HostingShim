@@ -11,10 +11,33 @@ Hosihikari 框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控�
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `verify/nethost/` | 一个只为拉取 runtime pack 的小工程 —— nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 |
+| `carriers/` | 各载体的目标。目前有 `levilamina/`，其余见「还没做的」 |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
+nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
+
 ## 跑一遍
+
+### 载体（LeviLamina）
+
+```
+carriers\levilamina\build.bat
+carriers\levilamina\deploy.bat <服务端根目录>
+```
+
+`build.bat` 自己用 `vswhere` 找 vcvars、接上 clang-cl；出网要走代理的网络请先设好 `https_proxy`
+（脚本不替你设）。`deploy.bat` 把 Shim 与托管核心一起铺进 `plugins/hosihikari/`。
+
+真机的一条龙 —— 起服、依次打 `show`/`disable`/`enable`/`unload`/`load`、再断言日志：
+
+```
+powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <服务端根目录>
+```
+
+它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `Hosihikari.PluginManager` checkout。
+需要一台已装好 LeviLamina 的服务端；**它不会去杀别人的服务端**，发现已经在跑就直接报错退出。
+
+### 原生缝（与载体无关）
 
 ```
 cmake -S verify -B build -G "Visual Studio 18 2026" -A x64
@@ -32,18 +55,18 @@ cmake --build build --config Release
 > ADR-0022 暂缓的是"生产里谁加载我们"（PreLoader 只给 `DllMain`，与 ADR-0016 冲突），而不是
 > "能不能被加载"。要把它用在别处，先想清楚这一点。
 
-## CI 覆盖不到的部分
+## CI 覆盖到哪
 
-**这个仓不像另外两个那样全绿就等于全好。** 托管侧有十四条断言护着、跑在 CI 上；这里只有上面那一个验证程序，
-而且它只覆盖**启动序列**（那一跳，与载体无关）。
+- **`verify/` 的三个目标**（host-glue / host-dll / injector）在 `windows-latest` 上编出来。
+- **`carriers/levilamina/`** 在 `windows-latest` 上编出来。它钉住 LLVM 版本，并缓存 `~/AppData/Local/.xmake`：
+  上游的 `levilamina` 包没有预编译体，第一次会把 LeviLamina 从源码编一遍（约十分钟），之后走缓存。
 
-四个载体的目标 —— LeviLamina mod、Endstone plugin（Windows 与 Linux）、自持态 Linux ——
-都要在真实 BDS 与真实父级里才验得了，**CI 跑不到**。改动到那部分时，本地验证是唯一保障。
+覆盖不到的是**真机行为**：起服、交付、启停、卸载、重载。那些由 `smoke.ps1` 在本地跑，需要一台真服务端。
 
 ## 还没做的
 
-四个载体目标本身。`common/` 已经就位，它们各自要做的是：接上自己的入口（父级 C++ 子类 / `EntryPoint` 符号 /
-`__libc_start_main` 拦截），并满足父级对清单与构建的要求。
+另外三个载体目标：Endstone plugin（Windows 与 Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
+接上自己的入口（父级 C++ 子类 / `EntryPoint` 符号 / `__libc_start_main` 拦截），并满足父级对清单与构建的要求。
 
 ## 许可
 
