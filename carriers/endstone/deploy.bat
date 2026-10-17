@@ -43,6 +43,8 @@ copy /y "%NETHOST%" "%~1\" >nul
 
 copy /y "%MANAGED%\*.dll" "%DST%" >nul
 copy /y "%MANAGED%\*.json" "%DST%" >nul
+REM PDBs too: without them the logged stacks carry no file:line.
+copy /y "%MANAGED%\*.pdb" "%DST%" >nul 2>&1
 
 echo deployed to %~1
 endlocal
