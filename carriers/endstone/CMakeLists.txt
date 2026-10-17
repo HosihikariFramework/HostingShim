@@ -55,6 +55,11 @@ endstone_add_plugin(hosihikari
     ${HOSIHIKARI_COMMON}/dotnet.cpp
 )
 
+# 上游的 endstone_add_plugin 会把产物名前缀成 endstone_<target>。那个前缀只服务于它的一条
+# 诊断（文件以 endstone_ 开头却没有 init_endstone_plugin 时提示"是不是忘了 ENDSTONE_PLUGIN"），
+# 而我们有那个宏。去掉前缀，两个载体的产物同名。
+set_target_properties(hosihikari PROPERTIES PREFIX "")
+
 target_include_directories(hosihikari PRIVATE
     src
     ${HOSIHIKARI_COMMON}

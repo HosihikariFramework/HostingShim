@@ -63,7 +63,7 @@ endstone -s <bedrock_server 所在目录>
 
 与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
 
-- **插件是按文件加载的**，所以载体本身是 `plugins/endstone_hosihikari.dll` 一个文件；托管核心仍在
+- **插件是按文件加载的**，所以载体本身是 `plugins/hosihikari.dll` 一个文件；托管核心仍在
   `plugins/hosihikari/`（父级按插件名给的数据目录）。我们的包是目录，因此覆盖了 `loadPlugins`。
 - **`nethost.dll` 必须放在服务端根目录**：Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 +
   当前目录"找；LeviLamina 那边是父级把 mod 目录加进了 PATH，这里没有这待遇。

@@ -55,8 +55,8 @@
           "placements": [
             {
               "type": "file",
-              "src": "endstone_hosihikari.dll",
-              "dest": "plugins/endstone_hosihikari.dll"
+              "src": "hosihikari.dll",
+              "dest": "plugins/hosihikari.dll"
             },
             {
               "type": "file",

@@ -15,7 +15,7 @@ if "%~1"=="" (
 set "NAME=hosihikari"
 set "HERE=%~dp0"
 set "MANAGED=%HERE%..\..\..\Hosihikari.PluginManager\src\bin\Release\net10.0"
-set "PLUGIN=%HERE%build\Release\endstone_hosihikari.dll"
+set "PLUGIN=%HERE%build\Release\hosihikari.dll"
 set "NETHOST=%HERE%build\nethost\runtimes\win-x64\native\nethost.dll"
 set "DST=%~1\plugins\%NAME%"
 
