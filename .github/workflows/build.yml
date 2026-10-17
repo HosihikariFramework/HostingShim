@@ -5,8 +5,6 @@ on:
     branches: [main]
   pull_request:
 
-# 这里构建的是**我们自己拥有的原生代码**：common/ 的启动序列，以及 verify/ 里那三个
-# 证明这条缝的程序。载体本身（carriers/）不在这里 —— 见下面的说明。
 jobs:
   seam:
     name: 原生缝（host-glue / host-dll / injector）
@@ -23,11 +21,32 @@ jobs:
       - name: 构建
         run: cmake --build verify/build --config Release
 
-# 载体的构建留在本地（carriers/levilamina/build.bat），原因记在这里，免得有人再试一遍：
-#
-#   liteldev 的 xmake-repo 没有 levilamina 的预编译包，装它等于在 runner 上把 LeviLamina
-#   整个从源码编一遍 —— 而它只在某个 clang 版本上编得过（本机 23.1.3 可以，runner 自带的
-#   那个在 LL 自己的源码上报类型不完整）。它的端口还**要求 clang-cl**，换 MSVC 不成立。
-#
-#   要把它接进 CI，得先把 LLVM 版本钉住（runner 上没有现成的 23）。在那之前，载体由
-#   build.bat + 真机验证覆盖；上游一旦发布预编译包，这里就只差一个 job。
+  # 载体这一步照官方模版（LiteLDev/levilamina-mod-template）的做法来：
+  #   1. 钉住 LLVM 版本 —— liteldev 的 xmake-repo 没有 levilamina 的预编译包，装它等于
+  #      在 runner 上把 LeviLamina 从源码编一遍，而它挑 clang 版本；runner 自带的那个
+  #      在 LL 自己的源码上报类型不完整。换 MSVC 不成立 —— 那个端口指定的就是 clang-cl。
+  #   2. 缓存 ~/AppData/Local/.xmake —— 那次源码构建很贵，之后就不必重来。
+  carrier:
+    name: 载体（LeviLamina / Windows）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/AppData/Local/.xmake
+          key: xmake-${{ hashFiles('carriers/levilamina/xmake.lua') }}
+          restore-keys: xmake-
+
+      # vcvars 由脚本用 vswhere 自己找；clang-cl 用上面装的那个（脚本只在找不到时才兜底）。
+      # 依赖从 liteldev 的 xmake-repo 与 nuget.org 取，两者公网可达。
+      - name: 构建
+        shell: cmd
+        run: carriers\levilamina\build.bat

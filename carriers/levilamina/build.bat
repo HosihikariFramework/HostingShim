@@ -24,8 +24,10 @@ if not defined VCVARS (
     call "%VCVARS%" >nul 2>&1
 )
 
-REM clang-cl lives in LLVM's bin; both this machine and the runners put it there.
-if exist "C:\Program Files\LLVM\bin\clang-cl.exe" set "PATH=C:\Program Files\LLVM\bin;%PATH%"
+REM clang-cl lives in LLVM's bin. Only fall back to the standard install when the
+REM environment does not already provide one -- CI pins a specific LLVM and must win.
+where clang-cl.exe >nul 2>&1
+if errorlevel 1 if exist "C:\Program Files\LLVM\bin\clang-cl.exe" set "PATH=C:\Program Files\LLVM\bin;%PATH%"
 
 cd /d "%~dp0"
 xmake f -y -p windows -a x64 -m release --toolchain=clang-cl || exit /b 1
