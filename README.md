@@ -137,12 +137,12 @@ repository, so anything below the root is invisible to it. One package, three va
 |---|---|
 | default (no label) | The LeviLamina carrier into `plugins/hosihikari/` |
 | `#endstone` | The Endstone Windows carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
-| `#endstone-linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/`, the managed core into `plugins/hosihikari/` |
+| `#endstone_linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/`, the managed core into `plugins/hosihikari/` |
 
 ```
 lip install github.com/HosihikariFramework/Shim
 lip install github.com/HosihikariFramework/Shim#endstone
-lip install github.com/HosihikariFramework/Shim#endstone-linux
+lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
 The release assets are exactly what the `deploy.bat` and `deploy.sh` scripts lay out, zipped; the

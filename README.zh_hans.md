@@ -137,12 +137,12 @@ cmake --build build --config Release
 |---|---|
 | 默认（不带 label） | LeviLamina 载体，落进 `plugins/hosihikari/` |
 | `#endstone` | Endstone Windows 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
-| `#endstone-linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/`，托管核心进 `plugins/hosihikari/` |
+| `#endstone_linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/`，托管核心进 `plugins/hosihikari/` |
 
 ```
 lip install github.com/HosihikariFramework/Shim
 lip install github.com/HosihikariFramework/Shim#endstone
-lip install github.com/HosihikariFramework/Shim#endstone-linux
+lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
 发布附件就是 `deploy.bat` 与 `deploy.sh` 铺出来的那一份打成 zip；版本来自 Git tag，所以**要先有标签
