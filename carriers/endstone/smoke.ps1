@@ -17,7 +17,8 @@ $ErrorActionPreference = 'Stop'
 $here = $PSScriptRoot
 $framework = Split-Path (Split-Path (Split-Path $here -Parent) -Parent) -Parent
 $core = Join-Path $framework 'Hosihikari.PluginManager'
-$rpc = Join-Path $framework 'RpcProvider'
+$rpc = Join-Path $framework 'Hosihikari.PluginProvider.Rpc'
+if (-not (Test-Path $rpc)) { $rpc = Join-Path $framework 'RpcProvider' }
 
 # Endstone is started through its CLI: it injects the runtime DLL into the
 # vanilla bedrock_server.exe. Running the exe directly gives a plain server.
