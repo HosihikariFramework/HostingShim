@@ -79,11 +79,12 @@ target_include_directories(hosihikari PRIVATE
 target_link_directories(hosihikari PRIVATE ${HOSIHIKARI_NETHOST_NATIVE})
 target_link_libraries(hosihikari PRIVATE nethost nlohmann_json::nlohmann_json ${CMAKE_DL_LIBS})
 
-# Linux 上 libnethost.so 与插件同住 plugins/；$ORIGIN 让动态加载器在插件旁边找它。
+# Linux 上 libnethost.so 与插件同住 plugins/。Endstone 会把插件影子复制到
+# plugins/.local/ 再 dlopen，所以 $ORIGIN/.. 也要在搜索路径里 —— 影子那份靠它回到 plugins/。
 if(UNIX AND NOT APPLE)
     set_target_properties(hosihikari PROPERTIES
-        BUILD_RPATH "$ORIGIN"
-        INSTALL_RPATH "$ORIGIN")
+        BUILD_RPATH "$ORIGIN;$ORIGIN/.."
+        INSTALL_RPATH "$ORIGIN;$ORIGIN/..")
 endif()
 
 if(WIN32)

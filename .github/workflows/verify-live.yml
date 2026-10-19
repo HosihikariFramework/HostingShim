@@ -9,10 +9,15 @@ on:
         description: 'BDS version'
         required: true
         default: '1.26.52.3'
+      source:
+        description: 'Linux: build the carrier from this checkout instead of installing the latest lip release'
+        type: boolean
+        default: false
 
 jobs:
   windows:
     name: Endstone / Windows
+    if: ${{ !inputs.source }}
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -77,9 +82,33 @@ jobs:
         with:
           path: Shim
 
+      # source 模式测未发布的改动：核心与契约并列 checkout，载体从本仓编。
+      - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
+        with:
+          repository: HosihikariFramework/PluginManagement
+          path: Hosihikari.PluginManager
+
+      - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
+        with:
+          repository: HosihikariFramework/Abstractions
+          path: Hosihikari.Abstractions
+
+      - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
+        with:
+          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
+          path: Hosihikari.McMaster.NETCore.Plugins
+
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+
+      - uses: actions/setup-dotnet@v6
+        if: ${{ inputs.source }}
+        with:
+          dotnet-version: '10.0.x'
 
       - name: 下载 BDS
         run: |
@@ -100,7 +129,26 @@ jobs:
           "$RUNNER_TEMP/endstone-venv/bin/pip" install --quiet endstone==0.11.14
           echo "ENDSTONE_EXE=$RUNNER_TEMP/endstone-venv/bin/endstone" >> "$GITHUB_ENV"
 
+      - name: Clang 与 libc++
+        if: ${{ inputs.source }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libc++-dev libc++abi-dev
+
+      - name: 托管核心
+        if: ${{ inputs.source }}
+        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
+
+      - name: 源码构建载体
+        if: ${{ inputs.source }}
+        run: Shim/carriers/endstone/build.sh
+
+      - name: 源码装配
+        if: ${{ inputs.source }}
+        run: Shim/carriers/endstone/deploy.sh "$SERVER"
+
       - name: lip
+        if: ${{ !inputs.source }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/lip"
@@ -111,6 +159,7 @@ jobs:
           echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
 
       - name: 安装载体
+        if: ${{ !inputs.source }}
         run: |
           set -euo pipefail
           cd "$SERVER"
