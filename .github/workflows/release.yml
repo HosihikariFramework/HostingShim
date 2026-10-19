@@ -14,30 +14,30 @@ jobs:
     name: 两个载体的发布附件
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: Shim
 
       # 托管核心在另一个仓。两个 deploy 脚本按 `..\..\..\Hosihikari.PluginManager` 找它，
       # 所以两份 checkout 的目录名与相对位置要照着摆。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginManagement
           path: Hosihikari.PluginManager
 
       # 契约与核心一起改：并列摆放才能编到新契约。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/Abstractions
           path: Hosihikari.Abstractions
 
       # 本机库的 RID 优先解析需要 fork；核心按 ../.. 找它。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
           path: Hosihikari.McMaster.NETCore.Plugins
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -69,7 +69,7 @@ jobs:
         with:
           llvm-version: 22
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/AppData/Local/.xmake
           key: xmake-${{ hashFiles('Shim/carriers/levilamina/xmake.lua') }}
