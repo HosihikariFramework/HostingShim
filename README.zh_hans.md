@@ -14,7 +14,7 @@
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `carriers/` | 各载体的目标：`levilamina/`（xmake）与 `endstone/`（CMake）。其余见「还没做的」 |
+| `carriers/` | 各载体的目标：`levilamina/`（xmake）与 `endstone/`（CMake，Windows 与 Linux）。自持态 Linux 见「还没做的」 |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
 nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
@@ -69,18 +69,34 @@ lip install github.com/HosihikariFramework/Shim#endstone
 
 ### 载体（Endstone）
 
+Windows：
+
 ```
 carriers\endstone\build.bat
 carriers\endstone\deploy.bat <bedrock_server 所在目录>
 endstone -s <bedrock_server 所在目录>
 ```
 
+Linux：
+
+```
+bash carriers/endstone/build.sh
+bash carriers/endstone/deploy.sh <bedrock_server 所在目录>
+endstone -s <bedrock_server 所在目录>
+```
+
+`build.sh` 需要 CMake 与 C++20 编译器；SDK 与 nlohmann/json 由 CMake 浅克隆，nethost 从 nuget.org 取。
+`deploy.sh` 铺插件、`libnethost.so` 与托管核心；插件带 `$ORIGIN`，所以 `libnethost.so` 放在它旁边。
+
 与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
 
-- **插件是按文件加载的**，所以载体本身是 `plugins/hosihikari.dll` 一个文件；托管核心仍在
-  `plugins/hosihikari/`（父级按插件名给的数据目录）。我们的包是目录，因此覆盖了 `loadPlugins`。
-- **`nethost.dll` 必须放在服务端根目录**：Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 +
-  当前目录"找；LeviLamina 那边是父级把 mod 目录加进了 PATH，这里没有这待遇。
+- **插件是按文件加载的**，所以载体本身是 `plugins/hosihikari.dll`（Linux 上是
+  `plugins/hosihikari.so`）一个文件；托管核心仍在 `plugins/hosihikari/`（父级按插件名给的数据目录）。
+  我们的包是目录，因此覆盖了 `loadPlugins`。
+- **nethost 库必须能被解析到**：Windows 上 `nethost.dll` 放在 `bedrock_server.exe` 旁边，因为
+  Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 + 当前目录"找；Linux 上
+  `libnethost.so` 放在插件旁边，由 `$ORIGIN` 找到。LeviLamina 那边是父级把 mod 目录加进了 PATH，
+  这里没有这待遇。
 - **插件名会被规范化**：Endstone 只接受 `^[a-z0-9_]+$` 且不以 `endstone` 开头，所以 `Bar` 在父级
   那边叫 `bar`，托管侧仍按清单里的名字记账。
 
@@ -107,6 +123,8 @@ cmake --build build --config Release
 - **`verify/` 的三个目标**（host-glue / host-dll / injector）在 `windows-latest` 上编出来。
 - **`carriers/levilamina/`** 在 `windows-latest` 上编出来。它钉住 LLVM 版本，并缓存 `~/AppData/Local/.xmake`：
   上游的 `levilamina` 包没有预编译体，第一次会把 LeviLamina 从源码编一遍（约十分钟），之后走缓存。
+- **`carriers/endstone/`** 在 `windows-latest` 与 `ubuntu-latest` 上编出来，约一分钟 —— 它的 SDK 是
+  纯头文件的 INTERFACE 库，只编我们自己的代码。
 
 覆盖不到的是**真机行为**：起服、交付、启停、卸载、重载。那些由 `smoke.ps1` 在本地跑，需要一台真服务端。
 
@@ -134,8 +152,8 @@ lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是�
 
 ## 还没做的
 
-另外两个载体目标：Endstone（Linux）、自持态 Linux。`common/` 已经就位，它们各自要做的是
-接上自己的入口（父级 C++ 子类 / `EntryPoint` 符号 / `__libc_start_main` 拦截），并满足父级对清单与构建的要求。
+剩下一个载体目标：自持态 Linux。`common/` 已经就位，它要做的是接上自己的入口
+（`__libc_start_main` 拦截），并满足那个目标对清单与构建的要求。
 
 ## 许可
 

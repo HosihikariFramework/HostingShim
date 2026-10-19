@@ -16,7 +16,7 @@ APIs; that side is **BindingShim**, produced outside this repository (ADR-0021).
 | | |
 |---|---|
 | `common/` | The startup sequence — **carrier-independent**; every carrier target compiles this same code |
-| `carriers/` | The carrier targets: `levilamina/` (xmake) and `endstone/` (CMake). See "Not done yet" for the rest |
+| `carriers/` | The carrier targets: `levilamina/` (xmake) and `endstone/` (CMake, Windows and Linux). See "Not done yet" for self-hosted Linux |
 | `verify/` | Programs and scaffolding that prove the native → managed hop |
 
 nethost headers and libraries are **fetched by version from NuGet**, never committed — both the
@@ -62,20 +62,37 @@ then PATH.
 
 ### Carrier: Endstone
 
+Windows:
+
 ```
 carriers\endstone\build.bat
 carriers\endstone\deploy.bat <folder containing bedrock_server.exe>
 endstone -s <folder containing bedrock_server.exe>
 ```
 
+Linux:
+
+```
+bash carriers/endstone/build.sh
+bash carriers/endstone/deploy.sh <folder containing bedrock_server>
+endstone -s <folder containing bedrock_server>
+```
+
+`build.sh` needs CMake and a C++20 compiler; the SDK and nlohmann/json are shallow-cloned by CMake,
+and nethost is fetched from nuget.org. `deploy.sh` copies the plugin, `libnethost.so` and the
+managed core; the plugin is linked with `$ORIGIN`, so `libnethost.so` sits beside it.
+
 Three structural differences from the LeviLamina carrier, all dictated by the parent:
 
-- **Plugins are loaded by file**, so the carrier itself is a single `plugins/hosihikari.dll`; the
-  managed core still lives in `plugins/hosihikari/` (the data folder the parent assigns by plugin
-  name). Our packages are directories, so the loader overrides `loadPlugins`.
-- **`nethost.dll` must sit next to `bedrock_server.exe`**: Endstone loads plugins with a plain
-  `LoadLibrary`, so the shim's own dependency is resolved from the application directory. The
-  LeviLamina carrier has no such problem because that parent adds the mod directory to `PATH`.
+- **Plugins are loaded by file**, so the carrier itself is a single `plugins/hosihikari.dll` (or
+  `plugins/hosihikari.so`); the managed core still lives in `plugins/hosihikari/` (the data folder
+  the parent assigns by plugin name). Our packages are directories, so the loader overrides
+  `loadPlugins`.
+- **The nethost library must be resolvable**: on Windows `nethost.dll` sits next to
+  `bedrock_server.exe`, because Endstone loads plugins with a plain `LoadLibrary` and resolves
+  dependencies from the application directory. On Linux `libnethost.so` sits next to the plugin and
+  is found through `$ORIGIN`. The LeviLamina carrier has no such problem because that parent adds
+  the mod directory to `PATH`.
 - **Plugin names are normalised**: Endstone accepts `^[a-z0-9_]+$` and forbids a leading `endstone`,
   so `Bar` appears to the parent as `bar` while the managed side still tracks it by its manifest
   name.
@@ -105,8 +122,8 @@ suspended `bedrock_server.exe` and calls that export.
 - **`carriers/levilamina/`** builds on `windows-latest`. It pins the LLVM version and caches
   `~/AppData/Local/.xmake`: upstream's `levilamina` package ships no prebuilt binaries, so the first
   run compiles LeviLamina from source (about ten minutes) and later runs reuse the cache.
-- **`carriers/endstone/`** builds on `windows-latest` in about a minute — its SDK is a header-only
-  interface library, so only our own code is compiled.
+- **`carriers/endstone/`** builds on `windows-latest` and `ubuntu-latest` in about a minute — its
+  SDK is a header-only interface library, so only our own code is compiled.
 
 What CI cannot cover is **live behaviour**: starting the server, delivery, enable/disable, unload,
 reload. `smoke.ps1` covers that locally against a real server.
@@ -137,10 +154,9 @@ way against the `v0.1.0` release.
 
 ## Not done yet
 
-Two carrier targets: Endstone on Linux, and self-hosted Linux. `common/` is already in place; each
-of them only has to attach its own entry point (the parent's C++ subclass / the `EntryPoint` symbol /
-the `__libc_start_main` interception) and satisfy that parent's expectations about manifests and
-builds.
+One carrier target: self-hosted Linux. `common/` is already in place; it only has to attach its own
+entry point (the `__libc_start_main` interception) and satisfy that target's expectations about
+manifests and builds.
 
 ## Licence
 

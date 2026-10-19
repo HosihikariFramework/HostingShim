@@ -34,15 +34,26 @@ FetchContent_MakeAvailable(nlohmann_json)
 set(HOSIHIKARI_COMMON ${CMAKE_CURRENT_SOURCE_DIR}/../../common)
 
 # nethost 随版本从 nuget.org 取，不随仓带二进制 —— 与 verify/ 同一个来源。
+# 运行包按平台分开；两边都是 x64，RID 决定包名与 native 目录。
 set(HOSIHIKARI_NETHOST_VERSION "10.0.13")
 set(HOSIHIKARI_NETHOST_ROOT "${CMAKE_CURRENT_BINARY_DIR}/nethost")
-set(HOSIHIKARI_NETHOST_NATIVE "${HOSIHIKARI_NETHOST_ROOT}/runtimes/win-x64/native")
+
+if(WIN32)
+    set(HOSIHIKARI_NETHOST_RID "win-x64")
+    set(HOSIHIKARI_NETHOST_PACKAGE "microsoft.netcore.app.host.win-x64")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(HOSIHIKARI_NETHOST_RID "linux-x64")
+    set(HOSIHIKARI_NETHOST_PACKAGE "microsoft.netcore.app.host.linux-x64")
+else()
+    message(FATAL_ERROR "不支持的载体平台：${CMAKE_SYSTEM_NAME}")
+endif()
+
+set(HOSIHIKARI_NETHOST_NATIVE "${HOSIHIKARI_NETHOST_ROOT}/runtimes/${HOSIHIKARI_NETHOST_RID}/native")
 
 if(NOT EXISTS "${HOSIHIKARI_NETHOST_NATIVE}/nethost.h")
-    set(HOSIHIKARI_NETHOST_PACKAGE "microsoft.netcore.app.host.win-x64")
     set(HOSIHIKARI_NETHOST_URL
         "https://api.nuget.org/v3-flatcontainer/${HOSIHIKARI_NETHOST_PACKAGE}/${HOSIHIKARI_NETHOST_VERSION}/${HOSIHIKARI_NETHOST_PACKAGE}.${HOSIHIKARI_NETHOST_VERSION}.nupkg")
-    message(STATUS "拉取 nethost（win-x64 ${HOSIHIKARI_NETHOST_VERSION}）")
+    message(STATUS "拉取 nethost（${HOSIHIKARI_NETHOST_RID} ${HOSIHIKARI_NETHOST_VERSION}）")
     file(DOWNLOAD "${HOSIHIKARI_NETHOST_URL}" "${HOSIHIKARI_NETHOST_ROOT}/nethost.nupkg" SHOW_PROGRESS)
     file(ARCHIVE_EXTRACT INPUT "${HOSIHIKARI_NETHOST_ROOT}/nethost.nupkg" DESTINATION "${HOSIHIKARI_NETHOST_ROOT}")
 endif()
@@ -66,10 +77,22 @@ target_include_directories(hosihikari PRIVATE
     ${HOSIHIKARI_NETHOST_NATIVE}
 )
 target_link_directories(hosihikari PRIVATE ${HOSIHIKARI_NETHOST_NATIVE})
-target_link_libraries(hosihikari PRIVATE nethost nlohmann_json::nlohmann_json)
-target_compile_definitions(hosihikari PRIVATE NOMINMAX UNICODE _UNICODE)
+target_link_libraries(hosihikari PRIVATE nethost nlohmann_json::nlohmann_json ${CMAKE_DL_LIBS})
+
+# Linux 上 libnethost.so 与插件同住 plugins/；$ORIGIN 让动态加载器在插件旁边找它。
+if(UNIX AND NOT APPLE)
+    set_target_properties(hosihikari PROPERTIES
+        BUILD_RPATH "$ORIGIN"
+        INSTALL_RPATH "$ORIGIN")
+endif()
+
+if(WIN32)
+    target_compile_definitions(hosihikari PRIVATE NOMINMAX UNICODE _UNICODE)
+endif()
 
 # 源文件是 UTF-8 无 BOM，中文注释要显式声明编码（ADR-0005）。
 if(MSVC)
     target_compile_options(hosihikari PRIVATE /utf-8 /W4)
+else()
+    target_compile_options(hosihikari PRIVATE -Wall -Wextra)
 endif()
