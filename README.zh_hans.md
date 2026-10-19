@@ -2,11 +2,12 @@
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
-星光框架的**原生层**：把 CLR 托管进 BDS 进程，然后把控制权交给核心
+星光框架的**原生层**，职责名是 **HostingShim**（CLR 寄宿垫片）：把 CLR 托管进 BDS 进程，然后把控制权交给核心
 [`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement)。
 
 它只做四件事：定位 hostfxr、以核心的 `runtimeconfig.json` 初始化运行时、载入核心程序集、取托管入口。
-其余一切（发现、依赖、隔离、生命周期）都在托管侧。
+其余一切（发现、依赖、隔离、生命周期）都在托管侧。它不投影载体 API —— 那一侧是 **BindingShim**，
+由星光产出（ADR-0021 / ADR-0033）。
 
 ## 这个仓里有什么
 

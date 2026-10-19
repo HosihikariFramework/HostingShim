@@ -2,13 +2,14 @@
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
-The **native layer** of the Hosihikari framework: it hosts the CLR inside the BDS process and then
-hands control to the core,
+The **native layer** of the Hosihikari framework, named **HostingShim** (the CLR hosting shim): it
+hosts the CLR inside the BDS process and then hands control to the core,
 [`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement).
 
 It does four things: locate hostfxr, initialise the runtime from the core's `runtimeconfig.json`,
 load the core assembly, and fetch the managed entry point. Everything else — discovery,
-dependencies, isolation, lifecycle — happens on the managed side.
+dependencies, isolation, lifecycle — happens on the managed side. It does not project carrier
+APIs; that side is **BindingShim**, produced outside this repository (ADR-0021 / ADR-0033).
 
 ## What is in this repository
 
