@@ -13,6 +13,10 @@ on:
         description: 'Linux: build the carrier from this checkout instead of installing the latest lip release'
         type: boolean
         default: false
+      version:
+        description: 'Optional package version, e.g. 0.3.2'
+        required: false
+        default: ''
 
 jobs:
   windows:
@@ -63,7 +67,9 @@ jobs:
         shell: pwsh
         run: |
           Set-Location $env:SERVER
-          lip install "github.com/HosihikariFramework/Shim#endstone"
+          $spec = 'github.com/HosihikariFramework/Shim#endstone'
+          if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
+          lip install $spec
           if (-not (Test-Path 'plugins/hosihikari.dll')) { throw 'the carrier dll is missing' }
           if (-not (Test-Path 'nethost.dll')) { throw 'nethost.dll is missing' }
 
@@ -163,7 +169,9 @@ jobs:
         run: |
           set -euo pipefail
           cd "$SERVER"
-          lip install "github.com/HosihikariFramework/Shim#endstone_linux"
+          spec="github.com/HosihikariFramework/Shim#endstone_linux"
+          if [ -n "${{ inputs.version }}" ]; then spec="$spec@${{ inputs.version }}"; fi
+          lip install "$spec"
           test -f plugins/hosihikari.so
           test -f plugins/libnethost.so
           ls -l plugins/hosihikari.so plugins/libnethost.so
