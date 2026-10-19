@@ -1,0 +1,125 @@
+name: verify-live
+
+# 真机冒烟：下载 BDS、装 Endstone 与 lip 发布的载体，起服、列插件、停服。
+# 与 verify-lip 分开：那条只验落盘，这条验进程里真的跑起来。
+on:
+  workflow_dispatch:
+    inputs:
+      bds_version:
+        description: 'BDS version'
+        required: true
+        default: '1.26.52.3'
+
+jobs:
+  windows:
+    name: Endstone / Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      BDS_VERSION: ${{ inputs.bds_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: 下载 BDS
+        shell: pwsh
+        run: |
+          $server = Join-Path $env:RUNNER_TEMP 'server'
+          New-Item -ItemType Directory -Force $server | Out-Null
+          Invoke-WebRequest -Uri "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server-$env:BDS_VERSION.zip" `
+            -OutFile "$env:RUNNER_TEMP\bds.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\bds.zip" -DestinationPath $server -Force
+          'eula=true' | Set-Content -Path (Join-Path $server 'eula.txt') -Encoding ASCII
+          "SERVER=$server" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Endstone
+        shell: pwsh
+        run: |
+          python -m venv "$env:RUNNER_TEMP\endstone-venv"
+          & "$env:RUNNER_TEMP\endstone-venv\Scripts\python.exe" -m pip install --quiet endstone==0.11.14
+          "ENDSTONE_EXE=$env:RUNNER_TEMP\endstone-venv\Scripts\endstone.exe" `
+            | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: lip
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-win-x64.zip" `
+            -OutFile "$env:RUNNER_TEMP\lip.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\lip.zip" -DestinationPath "$env:RUNNER_TEMP\lip" -Force
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\lip" -Recurse -Filter lip.exe | Select-Object -First 1
+          $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 安装载体
+        shell: pwsh
+        run: |
+          Set-Location $env:SERVER
+          lip install "github.com/HosihikariFramework/Shim#endstone"
+          if (-not (Test-Path 'plugins/hosihikari.dll')) { throw 'the carrier dll is missing' }
+          if (-not (Test-Path 'nethost.dll')) { throw 'nethost.dll is missing' }
+
+      - name: 冒烟
+        shell: pwsh
+        run: pwsh -File Shim/carriers/endstone/smoke-live.ps1 -ServerRoot $env:SERVER
+
+  linux:
+    name: Endstone / Linux
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BDS_VERSION: ${{ inputs.bds_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: 下载 BDS
+        run: |
+          set -euo pipefail
+          server="$RUNNER_TEMP/server"
+          mkdir -p "$server"
+          curl -fsSL -A 'Mozilla/5.0' -o "$RUNNER_TEMP/bds.zip" \
+            "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-$BDS_VERSION.zip"
+          unzip -q "$RUNNER_TEMP/bds.zip" -d "$server"
+          chmod +x "$server/bedrock_server"
+          echo 'eula=true' > "$server/eula.txt"
+          echo "SERVER=$server" >> "$GITHUB_ENV"
+
+      - name: Endstone
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/endstone-venv"
+          "$RUNNER_TEMP/endstone-venv/bin/pip" install --quiet endstone==0.11.14
+          echo "ENDSTONE_EXE=$RUNNER_TEMP/endstone-venv/bin/endstone" >> "$GITHUB_ENV"
+
+      - name: lip
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lip"
+          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
+            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
+          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
+          chmod +x "$RUNNER_TEMP/lip/lip"
+          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
+
+      - name: 安装载体
+        run: |
+          set -euo pipefail
+          cd "$SERVER"
+          lip install "github.com/HosihikariFramework/Shim#endstone_linux"
+          test -f plugins/hosihikari.so
+          test -f plugins/libnethost.so
+
+      - name: 冒烟
+        run: |
+          set -euo pipefail
+          chmod +x Shim/carriers/endstone/smoke.sh
+          Shim/carriers/endstone/smoke.sh "$SERVER"
