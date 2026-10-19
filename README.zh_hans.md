@@ -52,6 +52,16 @@ powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone 服务端根�
 `stop`，断言插件写出的文件、崩溃故障与载体的移除告警。CLI 默认找
 `%TEMP%\endstone-venv\Scripts\endstone.exe`，也可以用 `ENDSTONE_EXE` 指。
 
+只验载体本身的一条短路径，对着已经用 lip 装好的包跑，不铺 Provider 与插件：
+
+```
+powershell -File carriers\endstone\smoke-live.ps1 -ServerRoot <服务端根目录>
+bash carriers/endstone/smoke.sh <服务端根目录>
+```
+
+Linux 脚本用 `ENDSTONE_EXE` 或 PATH 上的 `endstone`。两边都断言 CLR 起来、载体接管、父级启用载体、
+服务端正常停服。
+
 `tooth.json` 在**仓根**，一份包两个变体（lip 的 `tooth` 是整个 Git 仓库地址，子目录里的读不到）：
 
 | 变体 | 装什么 |
@@ -125,8 +135,11 @@ cmake --build build --config Release
   上游的 `levilamina` 包没有预编译体，第一次会把 LeviLamina 从源码编一遍（约十分钟），之后走缓存。
 - **`carriers/endstone/`** 在 `windows-latest` 与 `ubuntu-latest` 上编出来，约一分钟 —— 它的 SDK 是
   纯头文件的 INTERFACE 库，只编我们自己的代码。
+- **`verify-lip`**（手动）在 `ubuntu-latest` 上用 lip 装 Linux 变体并检查落盘。
+- **`verify-live`**（手动）下载 BDS，装 Endstone 与 lip 发布包，在 Windows 与 Linux 上起服，断言 CLR
+  与载体起来、服务端正常停服。
 
-覆盖不到的是**真机行为**：起服、交付、启停、卸载、重载。那些由 `smoke.ps1` 在本地跑，需要一台真服务端。
+更完整的交付/启停/卸载/重载仍由本地的 `smoke.ps1` 跑，需要一台真服务端。
 
 ## 分发
 

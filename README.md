@@ -60,6 +60,17 @@ It stages the provider package and two Node plugins, drives `plugins` / `endston
 warning. The CLI is looked up at `%TEMP%\endstone-venv\Scripts\endstone.exe`, then `ENDSTONE_EXE`,
 then PATH.
 
+A shorter carrier-only pass runs against an already installed lip package, without staging
+providers or plugins:
+
+```
+powershell -File carriers\endstone\smoke-live.ps1 -ServerRoot <server root>
+bash carriers/endstone/smoke.sh <server root>
+```
+
+The Linux script uses `ENDSTONE_EXE` or `endstone` on PATH. Both assert that the CLR comes up, the
+carrier takes over, the parent enables it, and the server stops cleanly.
+
 ### Carrier: Endstone
 
 Windows:
@@ -124,9 +135,13 @@ suspended `bedrock_server.exe` and calls that export.
   run compiles LeviLamina from source (about ten minutes) and later runs reuse the cache.
 - **`carriers/endstone/`** builds on `windows-latest` and `ubuntu-latest` in about a minute — its
   SDK is a header-only interface library, so only our own code is compiled.
+- **`verify-lip`** (manual) installs the Linux variant with lip on `ubuntu-latest` and checks the
+  placement.
+- **`verify-live`** (manual) downloads BDS, installs Endstone and the released lip package, starts
+  the server on Windows and Linux, and checks that the CLR and carrier come up and the server stops.
 
-What CI cannot cover is **live behaviour**: starting the server, delivery, enable/disable, unload,
-reload. `smoke.ps1` covers that locally against a real server.
+Live carrier behaviour is covered by the manual `verify-live` workflow. The fuller
+delivery/enable/disable/unload/reload pass remains local via `smoke.ps1`.
 
 ## Distribution
 
