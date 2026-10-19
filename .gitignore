@@ -3,3 +3,4 @@ out/
 .xmake/
 verbose.log
 bin/
+.codegraph/
