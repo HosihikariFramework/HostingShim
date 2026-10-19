@@ -5,5 +5,13 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+# The Endstone SDK forces -stdlib=libc++ on UNIX for BDS ABI compatibility.
+# GCC's c++ driver rejects that flag, so Linux builds with Clang and libc++.
+compiler=()
+if [ "$(uname -s)" = "Linux" ]; then
+    compiler=(-DCMAKE_C_COMPILER="${CC:-clang}" -DCMAKE_CXX_COMPILER="${CXX:-clang++}")
+fi
+
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release "${compiler[@]}"
 cmake --build build --config Release --parallel
