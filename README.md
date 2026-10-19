@@ -131,26 +131,28 @@ reload. `smoke.ps1` covers that locally against a real server.
 ## Distribution
 
 `tooth.json` sits at the **repository root**: lip resolves the `tooth` field as a whole Git
-repository, so anything below the root is invisible to it. One package, two variants:
+repository, so anything below the root is invisible to it. One package, three variants:
 
 | Variant | What it installs |
 |---|---|
 | default (no label) | The LeviLamina carrier into `plugins/hosihikari/` |
-| `#endstone` | The Endstone carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
+| `#endstone` | The Endstone Windows carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
+| `#endstone-linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/`, the managed core into `plugins/hosihikari/` |
 
 ```
 lip install github.com/HosihikariFramework/Shim
 lip install github.com/HosihikariFramework/Shim#endstone
+lip install github.com/HosihikariFramework/Shim#endstone-linux
 ```
 
-The release assets are exactly what the two `deploy.bat` scripts lay out, zipped; the version comes
-from a Git tag, so **a tag and a matching release are required before any of this can be installed**.
-Tagging `v*` runs the release workflow that builds both carriers and attaches both archives.
+The release assets are exactly what the `deploy.bat` and `deploy.sh` scripts lay out, zipped; the
+version comes from a Git tag, so **a tag and a matching release are required before any of this can
+be installed**. Tagging `v*` runs the release workflow that builds all three archives and attaches
+them to one release.
 
 lip resolves versions through the **Go module proxy** (`proxy.golang.org`), not git tags directly,
 so a freshly pushed tag takes a while to become installable: until the proxy indexes it,
-`lip install` reports "Failed to find the latest version". Both variants above were installed this
-way against the `v0.1.0` release.
+`lip install` reports "Failed to find the latest version". The variants above are installed this way.
 
 ## Not done yet
 
