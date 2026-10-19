@@ -117,6 +117,9 @@ jobs:
           lip install "github.com/HosihikariFramework/Shim#endstone_linux"
           test -f plugins/hosihikari.so
           test -f plugins/libnethost.so
+          ls -l plugins/hosihikari.so plugins/libnethost.so
+          readelf -d plugins/hosihikari.so | grep -E 'RPATH|RUNPATH' || true
+          ldd plugins/hosihikari.so || true
 
       - name: 冒烟
         run: |
