@@ -21,6 +21,7 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
             https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
           tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
+          chmod +x "$RUNNER_TEMP/lip/lip"
           echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
 
       - name: 安装变体
