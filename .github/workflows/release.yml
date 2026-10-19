@@ -41,6 +41,24 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # 标签、tooth 与两个载体报出的版本必须是同一个；漂了就在构建前停下。
+      - name: 版本一致
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}' -replace '^v', ''
+          $tooth = (Get-Content Shim/tooth.json -Raw | ConvertFrom-Json).version
+          if ($tooth -ne $tag) { throw "tooth.json 是 $tooth，标签是 $tag" }
+
+          $levilamina = Get-Content Shim/carriers/levilamina/xmake.lua -Raw
+          if (-not $levilamina.Contains("modVersion = `"$tag`"")) {
+            throw "LeviLamina 载体的 modVersion 不是 $tag"
+          }
+
+          $endstone = Get-Content Shim/carriers/endstone/src/plugin.cpp -Raw
+          if (-not $endstone.Contains("ENDSTONE_PLUGIN(`"hosihikari`", `"$tag`"")) {
+            throw "Endstone 载体的版本不是 $tag"
+          }
+
       - name: 托管核心
         run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
 
