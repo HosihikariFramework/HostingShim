@@ -13,6 +13,10 @@ on:
         description: 'BDS version for LeviLamina'
         required: true
         default: '1.26.51.1'
+      selfhosted_bds_version:
+        description: 'BDS version for self-hosted Linux'
+        required: true
+        default: '1.21.3.01'
       source:
         description: 'Linux: build the carrier from this checkout instead of installing the latest lip release'
         type: boolean
@@ -121,7 +125,7 @@ jobs:
         shell: pwsh
         run: |
           Set-Location $env:SERVER
-          $spec = 'github.com/HosihikariFramework/Shim'
+          $spec = 'github.com/HosihikariFramework/Shim#levilamina'
           if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
           lip install $spec
           if (-not (Test-Path 'bedrock_server_mod.exe')) { throw 'LeviLamina did not produce bedrock_server_mod.exe' }
@@ -244,28 +248,32 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      BDS_VERSION: ${{ inputs.bds_version }}
+      BDS_VERSION: ${{ inputs.selfhosted_bds_version }}
     steps:
       - uses: actions/checkout@v7
         with:
           path: Shim
 
       - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
         with:
           repository: HosihikariFramework/PluginManagement
           path: Hosihikari.PluginManager
 
       - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
         with:
           repository: HosihikariFramework/Abstractions
           path: Hosihikari.Abstractions
 
       - uses: actions/checkout@v7
+        if: ${{ inputs.source }}
         with:
           repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
           path: Hosihikari.McMaster.NETCore.Plugins
 
       - uses: actions/setup-dotnet@v6
+        if: ${{ inputs.source }}
         with:
           dotnet-version: '10.0.x'
 
@@ -282,13 +290,39 @@ jobs:
           echo "SERVER=$server" >> "$GITHUB_ENV"
 
       - name: 托管核心
+        if: ${{ inputs.source }}
         run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
 
       - name: 构建自持态载体
+        if: ${{ inputs.source }}
         run: Shim/carriers/selfhosted-linux/build.sh
 
       - name: 装配
+        if: ${{ inputs.source }}
         run: Shim/carriers/selfhosted-linux/deploy.sh "$SERVER"
+
+      - name: lip
+        if: ${{ !inputs.source }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lip"
+          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
+            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
+          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
+          chmod +x "$RUNNER_TEMP/lip/lip"
+          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
+
+      - name: 安装载体
+        if: ${{ !inputs.source }}
+        run: |
+          set -euo pipefail
+          cd "$SERVER"
+          spec="github.com/HosihikariFramework/Shim"
+          if [ -n "${{ inputs.version }}" ]; then spec="$spec@${{ inputs.version }}"; fi
+          lip install "$spec"
+          test -f plugins/hosihikari/libhosihikari.so
+          test -f plugins/hosihikari/libnethost.so
+          chmod +x hosihikari-server
 
       - name: 冒烟
         run: |
