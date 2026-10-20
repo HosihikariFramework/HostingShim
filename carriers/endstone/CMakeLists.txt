@@ -85,6 +85,8 @@ if(UNIX AND NOT APPLE)
     set_target_properties(hosihikari PROPERTIES
         BUILD_RPATH "$ORIGIN;$ORIGIN/.."
         INSTALL_RPATH "$ORIGIN;$ORIGIN/..")
+    # Endstone reload 会 dlclose 影子副本；CLR 还在这段代码上跑，不能让它消失。
+    target_link_options(hosihikari PRIVATE "-Wl,-z,nodelete")
 endif()
 
 if(WIN32)

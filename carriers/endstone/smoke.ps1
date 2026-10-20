@@ -107,6 +107,8 @@ if (-not (Test-Path $serverExe)) { throw "no bedrock_server.exe under $ServerRoo
 
 $steps = @(
     @{ Wait = 30; Line = 'plugins' },
+    @{ Wait = 8;  Line = 'reload' },
+    @{ Wait = 5;  Line = 'plugins' },
     @{ Wait = 5;  Line = 'endstone:disable hello' },
     @{ Wait = 5;  Line = 'endstone:enable hello' },
     @{ Wait = 3;  Line = 'plugins' },
@@ -147,6 +149,8 @@ foreach ($check in $checks) {
     $ok = $text.Contains($check.Expect)
     Write-Host ("{0}  {1}" -f $(if ($ok) { 'PASS' } else { 'FAIL' }), $check.Name)
 }
+$takeovers = ([regex]::Matches($text, 'Enabling hosihikari')).Count
+Write-Host ("{0}  reload re-enables carrier  ({1})" -f $(if ($takeovers -ge 2) { 'PASS' } else { 'FAIL' }), $takeovers)
 
 function Check-File([string]$Name, [string]$Expected) {
     $path = Join-Path $helloData $Name
@@ -172,7 +176,7 @@ foreach ($bad in @('Unhandled exception', 'Segmentation fault')) {
 }
 
 $logOk = -not ($checks | Where-Object { -not $text.Contains($_.Expect) })
-if (-not $logOk -or $fileChecks -contains $false) {
+if (-not $logOk -or $fileChecks -contains $false -or $takeovers -lt 2) {
     Write-Host "see $log"
     exit 1
 }

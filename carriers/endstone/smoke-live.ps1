@@ -39,7 +39,7 @@ if (-not (Test-Path $exe)) { throw "no bedrock_server.exe under $server" }
 
 $wait = if ($env:HOSIHIKARI_SMOKE_DELAY) { [Math]::Max(1, [int]$env:HOSIHIKARI_SMOKE_DELAY) } else { 60 }
 $settle = if ($env:HOSIHIKARI_SMOKE_SETTLE) { [Math]::Max(1, [int]$env:HOSIHIKARI_SMOKE_SETTLE) } else { 8 }
-$timeoutSeconds = if ($env:HOSIHIKARI_SMOKE_TIMEOUT) { [Math]::Max(1, [int]$env:HOSIHIKARI_SMOKE_TIMEOUT) } else { 90 }
+$timeoutSeconds = if ($env:HOSIHIKARI_SMOKE_TIMEOUT) { [Math]::Max(1, [int]$env:HOSIHIKARI_SMOKE_TIMEOUT) } else { 180 }
 
 $log = Join-Path $server 'smoke-live.log'
 $exitFile = Join-Path $server 'smoke-live.exit'
@@ -50,6 +50,8 @@ $lines = @(
     '@echo off'
     '('
     '  ping -n ' + $wait + ' 127.0.0.1 >nul & echo plugins'
+    '  ping -n ' + $settle + ' 127.0.0.1 >nul & echo reload'
+    '  ping -n ' + $settle + ' 127.0.0.1 >nul & echo plugins'
     '  ping -n ' + $settle + ' 127.0.0.1 >nul & echo stop'
     ') | "' + $endstone + '" -s "' + $server + '" -y > "' + $log + '" 2>&1'
     'set SERVER_EXIT=%ERRORLEVEL%'
@@ -81,11 +83,13 @@ if (Test-Path $exitFile) {
 $text = if (Test-Path $log) { Get-Content $log -Raw -Encoding UTF8 } else { '' }
 $ready = -join ([char]0x5DF2, [char]0x5C31, [char]0x7EEA)
 $tookOver = -join ([char]0x5DF2, [char]0x63A5, [char]0x7BA1)
+$takeovers = ([regex]::Matches($text, [regex]::Escape($tookOver))).Count
 $checks = @(
     @{ Name = 'server exited cleanly'; Ok = (-not $timedOut -and $serverExit -eq 0) },
     @{ Name = 'carrier loads the CLR'; Ok = ($text.Contains('CLR') -and $text.Contains('BDS')) },
     @{ Name = 'core reports ready'; Ok = $text.Contains($ready) },
     @{ Name = 'carrier takes over'; Ok = $text.Contains($tookOver) },
+    @{ Name = 'reload takes over again'; Ok = $takeovers -ge 2 },
     @{ Name = 'parent enables carrier'; Ok = $text.Contains('Enabling hosihikari') },
     @{ Name = 'server stops'; Ok = ($text.Contains('Server stop requested') -or $text.Contains('Stopping server')) }
 )

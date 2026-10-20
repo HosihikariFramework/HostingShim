@@ -115,10 +115,13 @@ int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath) {
 
     // 组件托管下运行时**不会**替你填 `AppContext.BaseDirectory` —— 它在托管侧是空串。
     // 按基目录找东西的代码（McMaster 就会按它枚举）拿到空路径就崩。属性只能在运行时载入之前设，
-    // 所以就在这儿，取委托之前。
+    // 所以就在这儿，取委托之前。返回值 rc > 0 表示运行时已经由上一次启动初始化过（Endstone
+    // reload 就是这条路径），属性已经设过，也不能再设。
     const std::basic_string<char_t> componentDirectory = DirectoryOf(hostPath);
-    if (!componentDirectory.empty()) {
-        g_setRuntimeProperty(context, CHARTEXT("APP_CONTEXT_BASE_DIRECTORY"), componentDirectory.c_str());
+    if (rc == 0 && !componentDirectory.empty()
+        && g_setRuntimeProperty(context, CHARTEXT("APP_CONTEXT_BASE_DIRECTORY"), componentDirectory.c_str()) != 0) {
+        g_close(context);
+        return -1;
     }
 
     rc = g_getRuntimeDelegate(

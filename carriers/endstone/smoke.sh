@@ -40,6 +40,10 @@ set +e
     sleep "$wait_before"
     echo plugins
     sleep "$settle"
+    echo reload
+    sleep "$settle"
+    echo plugins
+    sleep "$settle"
     echo stop
 ) | timeout 240s "$endstone" -s "$server" -y > "$log" 2>&1
 server_status=$?
@@ -56,6 +60,8 @@ fail() {
 grep -q "正在把 CLR 托管进 BDS 进程" "$log" || fail "carrier did not load the CLR"
 grep -q "Hosihikari: 已就绪" "$log" || fail "core did not report ready"
 grep -q "已接管" "$log" || fail "carrier did not take over the plugin set"
+takeovers=$(grep -c "已接管" "$log" || true)
+[ "$takeovers" -ge 2 ] || fail "carrier did not take over again after reload ($takeovers)"
 grep -q "Enabling hosihikari" "$log" || fail "Endstone did not enable the carrier"
 grep -qE "Server stop requested|Stopping server" "$log" || fail "server did not stop cleanly"
 

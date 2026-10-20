@@ -142,6 +142,22 @@ void HosihikariPlugin::onEnable() {
 }
 
 void HosihikariPlugin::onDisable() {
+    // reload 会走这里。先把子插件收回、丢掉旧 host；CLR 留着，
+    // 下一次 onLoad 会建一个新的 host。正常关服也走同一条收尾路径。
+    auto const component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
+    component_entry_point_fn stop = nullptr;
+    if (hosihikari::shim::GetManagedEntry(
+            component.c_str(), kEntryType, CHARTEXT("StopUnderParent"), &stop) == 0
+        && stop != nullptr) {
+        if (stop(nullptr, 0) != 0) {
+            getLogger().warning("重载前回收托管核心失败，旧实例可能残留");
+        }
+    }
+
+    // 旧 loader 的日志器马上会被 Endstone 销毁。托管侧在 StopUnderParent 里推进日志代次，
+    // 之后旧线程的日志不会再进这个回调；这里再置空一次，照顾 Linux 上保活的模块。
+    g_logger = nullptr;
+
     // ADR-0024：停用退不回去 —— CLR 已经在进程里。但 Endstone 的 onDisable 没有失败通道
     // （`void`，不像 LeviLamina 那样能拒绝），所以只能把理由写进日志。
     getLogger().warning(
