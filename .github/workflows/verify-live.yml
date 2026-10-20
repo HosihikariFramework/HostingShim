@@ -5,7 +5,7 @@ name: verify-live
 on:
   workflow_dispatch:
     inputs:
-      bds_version:
+      endstone_bds_version:
         description: 'BDS version for Endstone'
         required: true
         default: '1.26.52.3'
@@ -37,7 +37,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     env:
-      BDS_VERSION: ${{ inputs.bds_version }}
+      BDS_VERSION: ${{ inputs.endstone_bds_version }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -140,7 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      BDS_VERSION: ${{ inputs.bds_version }}
+      BDS_VERSION: ${{ inputs.endstone_bds_version }}
     steps:
       - uses: actions/checkout@v7
         with:
