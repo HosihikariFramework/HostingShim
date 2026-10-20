@@ -116,7 +116,9 @@ $steps = @(
 )
 
 $log = Join-Path $ServerRoot 'smoke-endstone.log'
+$exitFile = Join-Path $ServerRoot 'smoke-endstone.exit'
 $driver = Join-Path $env:TEMP 'hosihikari-endstone-smoke.cmd'
+Remove-Item $log, $exitFile -Force -ErrorAction SilentlyContinue
 $lines = New-Object System.Text.StringBuilder
 [void]$lines.AppendLine('@echo off')
 [void]$lines.AppendLine('(')
@@ -124,6 +126,9 @@ foreach ($step in $steps) {
     [void]$lines.AppendLine("  ping -n $($step.Wait) 127.0.0.1 >nul & echo $($step.Line)")
 }
 [void]$lines.AppendLine(") | `"$endstone`" -s `"$ServerRoot`" -y > `"$log`" 2>&1")
+[void]$lines.AppendLine('set SERVER_EXIT=%ERRORLEVEL%')
+[void]$lines.AppendLine("echo %SERVER_EXIT% > `"$exitFile`"")
+[void]$lines.AppendLine('exit /b %SERVER_EXIT%')
 Set-Content -Path $driver -Value $lines.ToString() -Encoding ASCII
 
 Write-Host '== running the server through the lifecycle =='
@@ -131,10 +136,22 @@ $run = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$driver`"" `
     -WorkingDirectory $ServerRoot -WindowStyle Hidden -PassThru
 $totalWait = ($steps | ForEach-Object { $_.Wait } | Measure-Object -Sum).Sum
 Start-Sleep -Seconds ($totalWait + 15)
-if (-not $run.HasExited) {
+$timedOut = -not $run.HasExited
+if ($timedOut) {
     & taskkill /PID $run.Id /T /F 2>&1 | Out-Null
+    $run.WaitForExit(5000) | Out-Null
 }
 Start-Sleep -Seconds 2
+
+$serverExit = $null
+if (Test-Path $exitFile) {
+    $parsed = 0
+    if ([int]::TryParse((Get-Content $exitFile -Raw).Trim(), [ref]$parsed)) {
+        $serverExit = $parsed
+    }
+}
+$exitOk = -not $timedOut -and $serverExit -eq 0
+Write-Host ("{0}  server exited cleanly  ({1})" -f $(if ($exitOk) { 'PASS' } else { 'FAIL' }), $(if ($timedOut) { 'timeout' } else { $serverExit }))
 
 $text = Get-Content $log -Raw -Encoding UTF8
 $notSupported = -join ([char]0x4E0D, [char]0x652F, [char]0x6301)  # "不支持"
@@ -176,7 +193,7 @@ foreach ($bad in @('Unhandled exception', 'Segmentation fault')) {
 }
 
 $logOk = -not ($checks | Where-Object { -not $text.Contains($_.Expect) })
-if (-not $logOk -or $fileChecks -contains $false -or $takeovers -lt 2) {
+if (-not $exitOk -or -not $logOk -or $fileChecks -contains $false -or $takeovers -lt 2) {
     Write-Host "see $log"
     exit 1
 }

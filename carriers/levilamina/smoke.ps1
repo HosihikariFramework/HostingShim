@@ -64,11 +64,14 @@ $steps = @(
     @{ Wait = 5;  Line = "ll disable $PluginName" },
     @{ Wait = 5;  Line = "ll enable $PluginName" },
     @{ Wait = 5;  Line = "ll unload $PluginName" },
-    @{ Wait = 6;  Line = "ll load $PluginName" }
+    @{ Wait = 6;  Line = "ll load $PluginName" },
+    @{ Wait = 5;  Line = 'stop' }
 )
 
 $log = Join-Path $ServerRoot 'smoke.log'
+$exitFile = Join-Path $ServerRoot 'smoke.exit'
 $driver = Join-Path $env:TEMP 'hosihikari-smoke.cmd'
+Remove-Item $log, $exitFile -Force -ErrorAction SilentlyContinue
 $lines = New-Object System.Text.StringBuilder
 [void]$lines.AppendLine('@echo off')
 [void]$lines.AppendLine('(')
@@ -76,6 +79,9 @@ foreach ($step in $steps) {
     [void]$lines.AppendLine("  ping -n $($step.Wait) 127.0.0.1 >nul & echo $($step.Line)")
 }
 [void]$lines.AppendLine(") | `"$exe`" > `"$log`" 2>&1")
+[void]$lines.AppendLine('set SERVER_EXIT=%ERRORLEVEL%')
+[void]$lines.AppendLine("echo %SERVER_EXIT% > `"$exitFile`"")
+[void]$lines.AppendLine('exit /b %SERVER_EXIT%')
 Set-Content -Path $driver -Value $lines.ToString() -Encoding ASCII
 
 Write-Host '== running the server through the lifecycle =='
@@ -83,8 +89,22 @@ $run = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', "`"$driver`"" `
     -WorkingDirectory $ServerRoot -WindowStyle Hidden -PassThru
 $totalWait = ($steps | ForEach-Object { $_.Wait } | Measure-Object -Sum).Sum
 Start-Sleep -Seconds ($totalWait + 15)
-& taskkill /PID $run.Id /T /F 2>&1 | Out-Null
+$timedOut = -not $run.HasExited
+if ($timedOut) {
+    & taskkill /PID $run.Id /T /F 2>&1 | Out-Null
+    $run.WaitForExit(5000) | Out-Null
+}
 Start-Sleep -Seconds 2
+
+$serverExit = $null
+if (Test-Path $exitFile) {
+    $parsed = 0
+    if ([int]::TryParse((Get-Content $exitFile -Raw).Trim(), [ref]$parsed)) {
+        $serverExit = $parsed
+    }
+}
+$exitOk = -not $timedOut -and $serverExit -eq 0
+Write-Host ("{0}  server exited cleanly  ({1})" -f $(if ($exitOk) { 'PASS' } else { 'FAIL' }), $(if ($timedOut) { 'timeout' } else { $serverExit }))
 
 $text = Get-Content $log -Raw
 $checks = @(
@@ -107,7 +127,7 @@ foreach ($bad in @('Unhandled exception', 'Segmentation fault')) {
     }
 }
 
-if ($checks | Where-Object { -not $text.Contains($_.Expect) }) {
+if (-not $exitOk -or ($checks | Where-Object { -not $text.Contains($_.Expect) })) {
     Write-Host "see $log"
     exit 1
 }

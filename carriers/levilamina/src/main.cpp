@@ -119,46 +119,55 @@ bool ShimMod::load() {
         return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
     };
 
-    // 日志出口要在托管入口跑之前交过去 —— 否则启动那几行还落在它自己的控制台上。
+    // 所有入口在交出日志出口、启动托管核心之前取齐。缺一个就返回，父级销毁失效 mod
+    // 时还没有托管回调指向这段代码。
     component_entry_point_fn setLogSink = nullptr;
-    if (fetch(L"SetLogSink", &setLogSink) == 0 && setLogSink != nullptr) {
-        struct LogSink {
-            void (*callback)(void*, int, char const*);
-            void* user;
-        };
-        LogSink sink{&logBridge, nullptr};
-        setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
-    }
-
-    if (const int managed = start(nullptr, 0); managed != 0) {
-        logger.error("托管入口返回 {}", managed);
+    component_entry_point_fn setRemovalSink = nullptr;
+    ManagedPluginEntries entries{};
+    if (fetch(L"SetLogSink", &setLogSink) != 0 || fetch(L"SetRemovalSink", &setRemovalSink) != 0
+        || fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
+        || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0
+        || setLogSink == nullptr || setRemovalSink == nullptr) {
+        logger.error("取不到托管核心入口");
         return false;
     }
 
-    // 父级对子插件能做的四件事各要一个入口（ADR-0003）：交付、收回、启用、停用。
-    ManagedPluginEntries entries{};
-    if (fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
-        || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0) {
-        logger.error("取不到插件管理入口");
+    struct LogSink {
+        void (*callback)(void*, int, char const*);
+        void* user;
+    };
+    auto const clearLogSink = [&] {
+        LogSink empty{nullptr, nullptr};
+        setLogSink(reinterpret_cast<char*>(&empty), sizeof(empty));
+    };
+
+    // 日志出口要在托管入口跑之前交过去 —— 否则启动那几行还落在它自己的控制台上。
+    LogSink sink{&logBridge, nullptr};
+    setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
+
+    if (const int managed = start(nullptr, 0); managed != 0) {
+        clearLogSink();
+        logger.error("托管入口返回 {}", managed);
         return false;
     }
 
     // 注册进父级注册表 —— 从这里起，本框架的插件由 LeviLamina 调度（ADR-0003）。
     auto manager = std::make_shared<HosihikariModManager>(entries);
     if (!ll::mod::ModManagerRegistry::getInstance().addManager(manager)) {
+        clearLogSink();
         logger.error("注册插件管理器失败");
         return false;
     }
 
     // 故障卸载成功后托管侧回叫这里，把父级账上的那一条摘掉（ADR-0030）。
-    component_entry_point_fn setRemovalSink = nullptr;
-    if (fetch(L"SetRemovalSink", &setRemovalSink) == 0 && setRemovalSink != nullptr) {
-        struct RemovalSink {
-            void (*callback)(void*, char const*);
-            void* user;
-        };
-        RemovalSink sink{&removalBridge, manager.get()};
-        setRemovalSink(reinterpret_cast<char*>(&sink), sizeof(sink));
+    // 这个出口缺失不致命：日志仍能工作，只是故障卸载不会摘父级账。
+    struct RemovalSink {
+        void (*callback)(void*, char const*);
+        void* user;
+    };
+    RemovalSink removal{&removalBridge, manager.get()};
+    if (setRemovalSink(reinterpret_cast<char*>(&removal), sizeof(removal)) != 0) {
+        logger.warn("托管侧拒绝移除出口，故障卸载将只留日志");
     }
 
     logger.info("已接管：CLR 就绪，插件管理器已注册");
