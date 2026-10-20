@@ -6,9 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       bds_version:
-        description: 'BDS version'
+        description: 'BDS version for Endstone and self-hosted'
         required: true
         default: '1.26.52.3'
+      levilamina_bds_version:
+        description: 'BDS version for LeviLamina'
+        required: true
+        default: '1.26.51.1'
       source:
         description: 'Linux: build the carrier from this checkout instead of installing the latest lip release'
         type: boolean
@@ -80,6 +84,51 @@ jobs:
       - name: 冒烟
         shell: pwsh
         run: pwsh -File Shim/carriers/endstone/smoke-live.ps1 -ServerRoot $env:SERVER
+
+  levilamina:
+    name: LeviLamina / Windows
+    if: ${{ !inputs.source && !inputs.selfhosted }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      BDS_VERSION: ${{ inputs.levilamina_bds_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - name: 下载 BDS
+        shell: pwsh
+        run: |
+          $server = Join-Path $env:RUNNER_TEMP 'server'
+          New-Item -ItemType Directory -Force $server | Out-Null
+          Invoke-WebRequest -Uri "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server-$env:BDS_VERSION.zip" `
+            -OutFile "$env:RUNNER_TEMP\bds.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\bds.zip" -DestinationPath $server -Force
+          'eula=true' | Set-Content -Path (Join-Path $server 'eula.txt') -Encoding ASCII
+          "SERVER=$server" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: lip
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-win-x64.zip" `
+            -OutFile "$env:RUNNER_TEMP\lip.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\lip.zip" -DestinationPath "$env:RUNNER_TEMP\lip" -Force
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\lip" -Recurse -Filter lip.exe | Select-Object -First 1
+          $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 安装载体
+        shell: pwsh
+        run: |
+          Set-Location $env:SERVER
+          $spec = 'github.com/HosihikariFramework/Shim'
+          if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
+          lip install $spec
+          if (-not (Test-Path 'bedrock_server_mod.exe')) { throw 'LeviLamina did not produce bedrock_server_mod.exe' }
+
+      - name: 冒烟
+        shell: pwsh
+        run: pwsh -File Shim/carriers/levilamina/smoke-live.ps1 -ServerRoot $env:SERVER
 
   linux:
     name: Endstone / Linux
