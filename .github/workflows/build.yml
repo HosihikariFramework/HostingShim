@@ -14,6 +14,15 @@ jobs:
       - name: 负向冒烟
         run: bash carriers/smoke-negative.sh
 
+  smoke-negative-windows:
+    name: Windows 冒烟拒绝非零退出
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: 负向冒烟
+        shell: pwsh
+        run: pwsh -File carriers/smoke-negative.ps1
+
   seam:
     name: 原生缝（host-glue / host-dll / injector）
     runs-on: windows-latest
