@@ -14,7 +14,7 @@
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `carriers/` | 各载体的目标：`levilamina/`（xmake）与 `endstone/`（CMake，Windows 与 Linux）。自持态 Linux 见「还没做的」 |
+| `carriers/` | 各载体的目标：`levilamina/`（xmake）、`endstone/`（CMake，Windows 与 Linux）与 `selfhosted-linux/`（CMake） |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
 nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
@@ -110,6 +110,25 @@ endstone -s <bedrock_server 所在目录>
 - **插件名会被规范化**：Endstone 只接受 `^[a-z0-9_]+$` 且不以 `endstone` 开头，所以 `Bar` 在父级
   那边叫 `bar`，托管侧仍按清单里的名字记账。
 
+### 载体（自持态 Linux）
+
+```
+bash carriers/selfhosted-linux/build.sh
+bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
+./hosihikari-server
+```
+
+`hosihikari-server` 用 `LD_PRELOAD` 预加载 `plugins/hosihikari/libhosihikari.so`。垫片拦截
+`__libc_start_main`，在 BDS 的 `main` 之前启动 CLR 与核心，核心自己枚举 `plugins/`
+（ADR-0005 / 0013 / 0018）。启动器会先切到服务端目录，核心的相对路径因此落在正确的服务端根上；
+需要系统已装 .NET 10 运行时。
+
+自持态插件是预编译程序集包；没有运行期启停（ADR-0020）。只验载体本身的真机路径：
+
+```
+bash carriers/selfhosted-linux/smoke.sh <bedrock_server 所在目录>
+```
+
 ### 原生缝（与载体无关）
 
 ```
@@ -135,6 +154,8 @@ cmake --build build --config Release
   上游的 `levilamina` 包没有预编译体，第一次会把 LeviLamina 从源码编一遍（约十分钟），之后走缓存。
 - **`carriers/endstone/`** 在 `windows-latest` 与 `ubuntu-latest` 上编出来，约一分钟 —— 它的 SDK 是
   纯头文件的 INTERFACE 库，只编我们自己的代码。
+- **`carriers/selfhosted-linux/`** 在 `ubuntu-latest` 上构建与装配；`verify-live` 的 `selfhosted`
+  输入用预加载垫片起 BDS。
 - **`verify-lip`**（手动）在 `ubuntu-latest` 上用 lip 装 Linux 变体并检查落盘。
 - **`verify-live`**（手动）下载 BDS，装 Endstone 与 lip 发布包，在 Windows 与 Linux 上起服，断言 CLR
   与载体起来、服务端正常停服。
@@ -167,8 +188,8 @@ lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是�
 
 ## 还没做的
 
-剩下一个载体目标：自持态 Linux。`common/` 已经就位，它要做的是接上自己的入口
-（`__libc_start_main` 拦截），并满足那个目标对清单与构建的要求。
+自持态 Windows 仍按 ADR-0022 暂缓。LeviLamina、Endstone（Windows 与 Linux）与自持态 Linux
+都已就位。
 
 ## 许可
 

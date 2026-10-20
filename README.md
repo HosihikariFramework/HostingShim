@@ -16,7 +16,7 @@ APIs; that side is **BindingShim**, produced outside this repository (ADR-0021).
 | | |
 |---|---|
 | `common/` | The startup sequence — **carrier-independent**; every carrier target compiles this same code |
-| `carriers/` | The carrier targets: `levilamina/` (xmake) and `endstone/` (CMake, Windows and Linux). See "Not done yet" for self-hosted Linux |
+| `carriers/` | The carrier targets: `levilamina/` (xmake), `endstone/` (CMake, Windows and Linux), and `selfhosted-linux/` (CMake) |
 | `verify/` | Programs and scaffolding that prove the native → managed hop |
 
 nethost headers and libraries are **fetched by version from NuGet**, never committed — both the
@@ -108,6 +108,26 @@ Three structural differences from the LeviLamina carrier, all dictated by the pa
   so `Bar` appears to the parent as `bar` while the managed side still tracks it by its manifest
   name.
 
+### Carrier: self-hosted Linux
+
+```
+bash carriers/selfhosted-linux/build.sh
+bash carriers/selfhosted-linux/deploy.sh <folder containing bedrock_server>
+./hosihikari-server
+```
+
+`hosihikari-server` preloads `plugins/hosihikari/libhosihikari.so` with `LD_PRELOAD`. The shim
+intercepts `__libc_start_main`, starts the CLR and the core before BDS' `main`, and the core scans
+`plugins/` itself (ADR-0005 / 0013 / 0018). The launcher `cd`s to the server folder, so the core's
+relative paths land on the right server root; it needs the .NET 10 runtime installed.
+
+Self-hosted plugins are precompiled assembly packages; there is no runtime enable/disable
+(ADR-0020). A carrier-only live pass:
+
+```
+bash carriers/selfhosted-linux/smoke.sh <folder containing bedrock_server>
+```
+
 ### Native seam (carrier-independent)
 
 ```
@@ -135,6 +155,8 @@ suspended `bedrock_server.exe` and calls that export.
   run compiles LeviLamina from source (about ten minutes) and later runs reuse the cache.
 - **`carriers/endstone/`** builds on `windows-latest` and `ubuntu-latest` in about a minute — its
   SDK is a header-only interface library, so only our own code is compiled.
+- **`carriers/selfhosted-linux/`** builds and deploys on `ubuntu-latest`; `verify-live` with the
+  `selfhosted` input starts BDS through the preloaded shim.
 - **`verify-lip`** (manual) installs the Linux variant with lip on `ubuntu-latest` and checks the
   placement.
 - **`verify-live`** (manual) downloads BDS, installs Endstone and the released lip package, starts
@@ -171,9 +193,8 @@ so a freshly pushed tag takes a while to become installable: until the proxy ind
 
 ## Not done yet
 
-One carrier target: self-hosted Linux. `common/` is already in place; it only has to attach its own
-entry point (the `__libc_start_main` interception) and satisfy that target's expectations about
-manifests and builds.
+Self-hosted Windows remains deferred (ADR-0022). LeviLamina, Endstone on Windows and Linux, and
+self-hosted Linux are in place.
 
 ## Licence
 
