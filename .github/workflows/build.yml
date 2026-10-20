@@ -88,6 +88,49 @@ jobs:
           test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.dll"
           test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.runtimeconfig.json"
 
+  carrier-selfhosted-linux:
+    name: 自持态（Linux）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - uses: actions/checkout@v7
+        with:
+          repository: HosihikariFramework/PluginManagement
+          path: Hosihikari.PluginManager
+
+      - uses: actions/checkout@v7
+        with:
+          repository: HosihikariFramework/Abstractions
+          path: Hosihikari.Abstractions
+
+      - uses: actions/checkout@v7
+        with:
+          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
+          path: Hosihikari.McMaster.NETCore.Plugins
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: 托管核心
+        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
+
+      - name: 构建
+        run: Shim/carriers/selfhosted-linux/build.sh
+
+      - name: 装配
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/stage-selfhosted-linux"
+          Shim/carriers/selfhosted-linux/deploy.sh "$stage"
+          test -f "$stage/plugins/hosihikari/libhosihikari.so"
+          test -f "$stage/plugins/hosihikari/libnethost.so"
+          test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.dll"
+          test -x "$stage/hosihikari-server"
+
   # 载体这一步照官方模版（LiteLDev/levilamina-mod-template）的做法来：
   #   1. 钉住 LLVM 版本 —— liteldev 的 xmake-repo 没有 levilamina 的预编译包，装它等于
   #      在 runner 上把 LeviLamina 从源码编一遍，而它挑 clang 版本；runner 自带的那个

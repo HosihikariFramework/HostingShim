@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Start BDS with the self-hosted shim preloaded.
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+lib="$PWD/plugins/hosihikari/libhosihikari.so"
+if [ ! -f "$lib" ]; then
+    echo "hosihikari is not installed: $lib is missing" >&2
+    exit 1
+fi
+if [ ! -x ./bedrock_server ]; then
+    echo "bedrock_server is missing or not executable in $PWD" >&2
+    exit 1
+fi
+
+exec env LD_PRELOAD="$lib${LD_PRELOAD:+:$LD_PRELOAD}" ./bedrock_server "$@"
