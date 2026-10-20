@@ -322,7 +322,7 @@ jobs:
           lip install "$spec"
           test -f plugins/hosihikari/libhosihikari.so
           test -f plugins/hosihikari/libnethost.so
-          chmod +x hosihikari-server
+          test -x hosihikari-server
 
       - name: 冒烟
         run: |

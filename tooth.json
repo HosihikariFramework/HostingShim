@@ -2,12 +2,13 @@
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
   "tooth": "github.com/HosihikariFramework/Shim",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "info": {
     "name": "星光",
     "description": "把 CLR 托管进 BDS，并把插件管理交给星光框架核心",
     "tags": [
       "platform:levilamina",
+      "platform:linux",
       "platform:endstone",
       "type:mod"
     ],
@@ -16,6 +17,39 @@
   "variants": [
     {
       "label": "",
+      "platform": "linux-x64",
+      "dependencies": {},
+      "assets": [
+        {
+          "type": "zip",
+          "urls": [
+            "https://{{tooth}}/releases/download/v{{version}}/hosihikari-selfhosted-linux-x64.zip"
+          ],
+          "placements": [
+            {
+              "type": "file",
+              "src": "hosihikari-server",
+              "dest": "hosihikari-server"
+            },
+            {
+              "type": "dir",
+              "src": "hosihikari/",
+              "dest": "plugins/hosihikari/"
+            }
+          ]
+        }
+      ],
+      "preserve_files": [],
+      "remove_files": [],
+      "scripts": {
+        "post_install": [
+          "chmod +x hosihikari-server"
+        ],
+        "pre_uninstall": []
+      }
+    },
+    {
+      "label": "levilamina",
       "platform": "win-x64",
       "dependencies": {
         "github.com/LiteLDev/LeviLamina": "26.51.*"

@@ -123,6 +123,8 @@ bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
 （ADR-0005 / 0013 / 0018）。启动器会先切到服务端目录，核心的相对路径因此落在正确的服务端根上；
 需要系统已装 .NET 10 运行时。
 
+自持态的目标是 BDS 1.21.3：容器本身与 BDS 版本无关，但能力面（星光）止于那里（ADR-0001）。
+
 自持态插件是预编译程序集包；没有运行期启停（ADR-0020）。只验载体本身的真机路径：
 
 ```
@@ -165,22 +167,26 @@ cmake --build build --config Release
 ## 分发
 
 `tooth.json` 在**仓根**：lip 把 `tooth` 字段整个当成一个 Git 仓库来解析，仓根以下的东西它看不见。
-一份包，三个变体：
+一份包，四个变体：
 
 | 变体 | 装什么 |
 |---|---|
-| 默认（不带 label） | LeviLamina 载体，落进 `plugins/hosihikari/` |
+| 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，垫片与托管核心进 `plugins/hosihikari/` |
+| `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/` |
 | `#endstone` | Endstone Windows 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
 | `#endstone_linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/`，托管核心进 `plugins/hosihikari/` |
 
 ```
-lip install github.com/HosihikariFramework/Shim
+lip install github.com/HosihikariFramework/Shim                # 自持态 Linux
+lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
 lip install github.com/HosihikariFramework/Shim#endstone
 lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
-发布附件就是 `deploy.bat` 与 `deploy.sh` 铺出来的那一份打成 zip；版本来自 Git tag，所以**要先有标签
-与对应的 release 才装得了**。打 `v*` 会跑发布工作流，编出三个归档并挂到同一个 release。
+无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。发布附件就是 `deploy.bat` 与
+`deploy.sh` 铺出来的那一份打成 zip；版本来自 Git tag，所以**要先有标签与对应的 release 才装得了**。
+打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 post_install 脚本会给
+`hosihikari-server` 加可执行位；跳过脚本时请自己 `chmod +x hosihikari-server`。
 
 lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是直接看 git tag —— 所以刚推上去的
 标签要等代理索引到才能装，在那之前 `lip install` 会报 "Failed to find the latest version"。

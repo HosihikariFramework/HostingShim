@@ -121,6 +121,9 @@ intercepts `__libc_start_main`, starts the CLR and the core before BDS' `main`, 
 `plugins/` itself (ADR-0005 / 0013 / 0018). The launcher `cd`s to the server folder, so the core's
 relative paths land on the right server root; it needs the .NET 10 runtime installed.
 
+The self-hosted target is BDS 1.21.3: the container itself is BDS-version-agnostic, but the
+capability surface (星光) stops there (ADR-0001).
+
 Self-hosted plugins are precompiled assembly packages; there is no runtime enable/disable
 (ADR-0020). A carrier-only live pass:
 
@@ -168,24 +171,28 @@ delivery/enable/disable/unload/reload pass remains local via `smoke.ps1`.
 ## Distribution
 
 `tooth.json` sits at the **repository root**: lip resolves the `tooth` field as a whole Git
-repository, so anything below the root is invisible to it. One package, three variants:
+repository, so anything below the root is invisible to it. One package, four variants:
 
 | Variant | What it installs |
 |---|---|
-| default (no label) | The LeviLamina carrier into `plugins/hosihikari/` |
+| default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the shim and managed core into `plugins/hosihikari/` |
+| `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/` |
 | `#endstone` | The Endstone Windows carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
 | `#endstone_linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/`, the managed core into `plugins/hosihikari/` |
 
 ```
-lip install github.com/HosihikariFramework/Shim
+lip install github.com/HosihikariFramework/Shim                # self-hosted Linux
+lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
 lip install github.com/HosihikariFramework/Shim#endstone
 lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
-The release assets are exactly what the `deploy.bat` and `deploy.sh` scripts lay out, zipped; the
+The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. The
+release assets are exactly what the `deploy.bat` and `deploy.sh` scripts lay out, zipped; the
 version comes from a Git tag, so **a tag and a matching release are required before any of this can
-be installed**. Tagging `v*` runs the release workflow that builds all three archives and attaches
-them to one release.
+be installed**. Tagging `v*` runs the release workflow that builds all four archives and attaches
+them to one release. The self-hosted post-install script marks `hosihikari-server` executable; if
+scripts are skipped, run `chmod +x hosihikari-server` yourself.
 
 lip resolves versions through the **Go module proxy** (`proxy.golang.org`), not git tags directly,
 so a freshly pushed tag takes a while to become installable: until the proxy indexes it,
