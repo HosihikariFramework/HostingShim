@@ -42,7 +42,16 @@ std::optional<nlohmann::json> readManifest(std::filesystem::path const &director
 
 bool isOurPackage(std::filesystem::path const &directory) {
     auto const manifest = readManifest(directory);
-    return manifest && manifest->value("type", std::string{}) == kRoutingType;
+    if (!manifest) {
+        return false;
+    }
+
+    try {
+        return manifest->value("type", std::string{}) == kRoutingType;
+    } catch (nlohmann::json::exception const &) {
+        // 字段类型错了就当它不是我们的包；直接点名的 loadPlugin 会给出具体原因。
+        return false;
+    }
 }
 
 /// Endstone 只接受 `^[a-z0-9_]+$`，且名字不能以 `endstone` 开头。托管侧仍按清单里的名字
@@ -101,38 +110,43 @@ endstone::Plugin *HosihikariPluginLoader::loadPlugin(std::string file) {
         return nullptr;
     }
 
-    auto const name    = manifest->value("name", std::string{});
-    auto const version = manifest->value("version", std::string{"0.0.0"});
-    if (name.empty()) {
-        server_.getLogger().error("{} 的清单缺少 name，跳过", file);
+    try {
+        auto const name    = manifest->value("name", std::string{});
+        auto const version = manifest->value("version", std::string{"0.0.0"});
+        if (name.empty()) {
+            server_.getLogger().error("{} 的清单缺少 name，跳过", file);
+            return nullptr;
+        }
+
+        endstone::detail::PluginDescriptionBuilder builder;
+        builder.description = manifest->value("description", std::string{"Hosihikari 插件"});
+        builder.prefix      = name;
+
+        auto const author = manifest->value("author", std::string{});
+        if (!author.empty()) {
+            builder.authors = {author};
+        }
+
+        for (auto const &dependency : manifest->value("dependencies", nlohmann::json::array())) {
+            auto dependencyName = dependency.value("name", std::string{});
+            // 对框架自身的依赖在这个载体上不成立：父级在调我们之前就已经把它装进来了，
+            // 而嵌套的这一轮 loadPlugins 只看本轮候选，"已加载"不算数 —— 留着会被判成
+            // 未知依赖，整个插件被剔掉。顺序由"我们在父级的 onLoad 里才发起这一轮"保证。
+            if (!dependencyName.empty() && dependencyName != kRoutingType) {
+                // 父级看到的插件名经过 endstoneName 规范化；依赖名必须用同一个形状，
+                // 否则 hosihikari-rpc 与 hosihikari_rpc 对不上，依赖图排不出来。
+                builder.depend.push_back(endstoneName(dependencyName));
+            }
+        }
+
+        auto plugin = std::make_unique<ManagedPlugin>(name, builder.build(endstoneName(name), version), entries_);
+        plugin->setPackageDirectory(file);
+
+        return plugins_.emplace_back(std::move(plugin)).get();
+    } catch (nlohmann::json::exception const &ex) {
+        server_.getLogger().error("{} 的清单字段类型错误，跳过：{}", file, ex.what());
         return nullptr;
     }
-
-    endstone::detail::PluginDescriptionBuilder builder;
-    builder.description = manifest->value("description", std::string{"Hosihikari 插件"});
-    builder.prefix      = name;
-
-    auto const author = manifest->value("author", std::string{});
-    if (!author.empty()) {
-        builder.authors = {author};
-    }
-
-    for (auto const &dependency : manifest->value("dependencies", nlohmann::json::array())) {
-        auto dependencyName = dependency.value("name", std::string{});
-        // 对框架自身的依赖在这个载体上不成立：父级在调我们之前就已经把它装进来了，
-        // 而嵌套的这一轮 loadPlugins 只看本轮候选，"已加载"不算数 —— 留着会被判成
-        // 未知依赖，整个插件被剔掉。顺序由"我们在父级的 onLoad 里才发起这一轮"保证。
-        if (!dependencyName.empty() && dependencyName != kRoutingType) {
-            // 父级看到的插件名经过 endstoneName 规范化；依赖名必须用同一个形状，
-            // 否则 hosihikari-rpc 与 hosihikari_rpc 对不上，依赖图排不出来。
-            builder.depend.push_back(endstoneName(dependencyName));
-        }
-    }
-
-    auto plugin = std::make_unique<ManagedPlugin>(name, builder.build(endstoneName(name), version), entries_);
-    plugin->setPackageDirectory(file);
-
-    return plugins_.emplace_back(std::move(plugin)).get();
 }
 
 std::vector<endstone::Plugin *> HosihikariPluginLoader::loadPlugins(std::string directory) {
@@ -147,8 +161,8 @@ std::vector<endstone::Plugin *> HosihikariPluginLoader::loadPlugins(std::string 
 
 std::vector<std::string> HosihikariPluginLoader::getPluginFileFilters() const {
     // 只在父级按文件名解析 loader 时用得上（`loadPlugins(vector<string>)`）。
-    // 匹配"最后一段里没有点的路径" —— 也就是我们的包目录，而不是任何文件。
-    return {"[/\\\\][^./\\\\]+$"};
+    // 匹配路径的最后一段，不限制点号 —— `Example.Plugin` 也是合法的包目录。
+    return {"[/\\\\][^/\\\\]+$"};
 }
 
 }  // namespace hosihikari::shim::endstone_carrier

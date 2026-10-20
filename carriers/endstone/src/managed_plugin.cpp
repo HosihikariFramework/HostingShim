@@ -1,5 +1,6 @@
 #include "managed_plugin.h"
 
+#include <stdexcept>
 #include <utility>
 
 namespace hosihikari::shim::endstone_carrier {
@@ -21,10 +22,11 @@ const endstone::PluginDescription &ManagedPlugin::getDescription() const { retur
 
 void ManagedPlugin::onLoad() {
     // 真正装进 ALC 的是托管核心；这里只把包目录交给它（ADR-0003）。
-    // 失败只让这一个插件倒下：父级看到的是它没被启用，其余照常（ADR-0009）。
+    // Endstone 在 onEnable 前就 setEnabled(true)，返回而不抛会让父级以为它装上了；
+    // 抛出去才是 Endstone 认识的加载失败。
     if (packageDirectory_.empty() || !deliver(entries_.load, packageDirectory_)) {
         getLogger().error("加载插件 {} 失败，原因已记进日志", name_);
-        return;
+        throw std::runtime_error("managed plugin load failed");
     }
 
     loaded_ = true;
