@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       bds_version:
-        description: 'BDS version for Endstone and self-hosted'
+        description: 'BDS version for Endstone'
         required: true
         default: '1.26.52.3'
       levilamina_bds_version:
