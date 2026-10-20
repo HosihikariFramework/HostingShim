@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <shared_mutex>
 #include <string>
 
 #include "dotnet.h"
@@ -14,9 +15,13 @@ namespace {
 /// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
 ///
 /// 日志器是插件的实例成员，而这是个 C 回调 —— 所以在 onLoad 里把它记下来。
+/// 读写都走同一把读写锁：onDisable 置空后要等已经进桥的日志写完，
+/// 才能让 Endstone 销毁旧插件实例。
 endstone::Logger* g_logger = nullptr;
+std::shared_mutex g_loggerMutex;
 
 void logBridge(void* /*user*/, int level, char const* utf8) {
+    std::shared_lock const lock(g_loggerMutex);
     if (g_logger == nullptr) {
         return;
     }
@@ -42,6 +47,7 @@ void logBridge(void* /*user*/, int level, char const* utf8) {
 /// 故障卸载后托管侧回叫这里。Endstone 的 PluginManager 没有单条摘除 API，
 /// 只能记日志：父级账上会保留到重启（ADR-0030）。
 void removalBridge(void* /*user*/, char const* nameUtf8) {
+    std::shared_lock const lock(g_loggerMutex);
     if (g_logger == nullptr) {
         return;
     }
@@ -64,7 +70,10 @@ void HosihikariPlugin::onLoad() {
     auto const component      = dataDirectory / CHARTEXT("Hosihikari.PluginManager.dll");
     auto const runtimeConfig  = dataDirectory / CHARTEXT("Hosihikari.PluginManager.runtimeconfig.json");
 
-    g_logger = &getLogger();
+    {
+        std::unique_lock const lock(g_loggerMutex);
+        g_logger = &getLogger();
+    }
 
     getLogger().info("正在把 CLR 托管进 BDS 进程");
     component_entry_point_fn start = nullptr;
@@ -142,8 +151,8 @@ void HosihikariPlugin::onEnable() {
 }
 
 void HosihikariPlugin::onDisable() {
-    // reload 会走这里。先把子插件收回、丢掉旧 host；CLR 留着，
-    // 下一次 onLoad 会建一个新的 host。正常关服也走同一条收尾路径。
+    // reload 会走这里。先把子插件收回；核心与 Provider 槽位保留，
+    // 下一次 onLoad 复用它们、只让新 loader 重新交付子插件。正常关服也走同一条收尾路径。
     auto const component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
     component_entry_point_fn stop = nullptr;
     if (hosihikari::shim::GetManagedEntry(
@@ -155,8 +164,11 @@ void HosihikariPlugin::onDisable() {
     }
 
     // 旧 loader 的日志器马上会被 Endstone 销毁。托管侧在 StopUnderParent 里推进日志代次，
-    // 之后旧线程的日志不会再进这个回调；这里再置空一次，照顾 Linux 上保活的模块。
-    g_logger = nullptr;
+    // 之后旧线程的日志不会再进这个回调；这里置空并等已进桥的日志写完，避免用到已销毁的日志器。
+    {
+        std::unique_lock const lock(g_loggerMutex);
+        g_logger = nullptr;
+    }
 
     // ADR-0024：停用退不回去 —— CLR 已经在进程里。但 Endstone 的 onDisable 没有失败通道
     // （`void`，不像 LeviLamina 那样能拒绝），所以只能把理由写进日志。

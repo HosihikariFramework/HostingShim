@@ -47,6 +47,12 @@ T LoadSymbol(void* library, const char* name) {
 }  // namespace
 
 int LoadHostfxr() {
+    // Endstone reload 会再次走到这里；hostfxr 只加载一次，重复 dlopen/LoadLibrary
+    // 每次都加引用计数，却从来没有对应的释放。
+    if (g_hostfxr != nullptr && g_initializeForRuntimeConfig != nullptr) {
+        return 0;
+    }
+
     char_t buffer[4096];
     size_t bufferSize = sizeof(buffer) / sizeof(char_t);
 
