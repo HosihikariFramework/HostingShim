@@ -4,7 +4,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-lib="$PWD/plugins/hosihikari/libhosihikari.so"
+# A relative preload path keeps LD_PRELOAD free of spaces: the loader splits
+# that variable on spaces and colons, so an absolute path under a server root
+# such as "My Server" would be broken into two entries.
+lib="plugins/hosihikari/libhosihikari.so"
 if [ ! -f "$lib" ]; then
     echo "hosihikari is not installed: $lib is missing" >&2
     exit 1

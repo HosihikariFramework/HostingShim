@@ -6,6 +6,14 @@ on:
   pull_request:
 
 jobs:
+  smoke-negative:
+    name: 冒烟拒绝非零退出
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: 负向冒烟
+        run: bash carriers/smoke-negative.sh
+
   seam:
     name: 原生缝（host-glue / host-dll / injector）
     runs-on: windows-latest

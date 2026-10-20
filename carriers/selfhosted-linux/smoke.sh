@@ -19,17 +19,22 @@ if [ ! -x "$launcher" ]; then
     exit 1
 fi
 
-if pgrep -x bedrock_server > /dev/null; then
+if command -v pgrep > /dev/null 2>&1 && pgrep -x bedrock_server > /dev/null; then
     echo "a server is already running; stop it first" >&2
     exit 1
 fi
 
 log="$server/smoke-selfhosted.log"
+wait_before=${HOSIHIKARI_SMOKE_DELAY:-60}
+rm -f "$log"
 
+set +e
 (
-    sleep 60
+    sleep "$wait_before"
     echo stop
-) | timeout 240s "$launcher" > "$log" 2>&1 || true
+) | timeout 240s "$launcher" > "$log" 2>&1
+server_status=$?
+set -e
 
 fail() {
     echo "FAIL  $1"
@@ -38,6 +43,7 @@ fail() {
     exit 1
 }
 
+[ "$server_status" -eq 0 ] || fail "server exited with status $server_status"
 grep -q "Server started" "$log" || fail "server did not start"
 grep -q "已加载" "$log" || fail "core did not scan plugins/"
 grep -q "启动失败" "$log" && fail "core reported a startup failure"

@@ -280,7 +280,7 @@ jobs:
       - name: 下载 BDS
         run: |
           set -euo pipefail
-          server="$RUNNER_TEMP/server"
+          server="$RUNNER_TEMP/server with space"
           mkdir -p "$server"
           curl -fsSL -A 'Mozilla/5.0' -o "$RUNNER_TEMP/bds.zip" \
             "https://www.minecraft.net/bedrockdedicatedserver/bin-linux/bedrock-server-$BDS_VERSION.zip"

@@ -24,20 +24,26 @@ if [ -z "$endstone" ] || [ ! -x "$endstone" ]; then
     exit 1
 fi
 
-if pgrep -x bedrock_server > /dev/null; then
+if command -v pgrep > /dev/null 2>&1 && pgrep -x bedrock_server > /dev/null; then
     echo "a server is already running; stop it first" >&2
     exit 1
 fi
 
 log="$server/smoke-linux.log"
+wait_before=${HOSIHIKARI_SMOKE_DELAY:-60}
+settle=${HOSIHIKARI_SMOKE_SETTLE:-8}
+rm -f "$log"
 
 # BDS reads commands from stdin. sleep is the portable pause here.
+set +e
 (
-    sleep 60
+    sleep "$wait_before"
     echo plugins
-    sleep 8
+    sleep "$settle"
     echo stop
-) | timeout 240s "$endstone" -s "$server" -y > "$log" 2>&1 || true
+) | timeout 240s "$endstone" -s "$server" -y > "$log" 2>&1
+server_status=$?
+set -e
 
 fail() {
     echo "FAIL  $1"
@@ -46,6 +52,7 @@ fail() {
     exit 1
 }
 
+[ "$server_status" -eq 0 ] || fail "server exited with status $server_status"
 grep -q "正在把 CLR 托管进 BDS 进程" "$log" || fail "carrier did not load the CLR"
 grep -q "Hosihikari: 已就绪" "$log" || fail "core did not report ready"
 grep -q "已接管" "$log" || fail "carrier did not take over the plugin set"

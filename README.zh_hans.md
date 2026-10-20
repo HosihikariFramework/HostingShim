@@ -62,21 +62,6 @@ bash carriers/endstone/smoke.sh <服务端根目录>
 Linux 脚本用 `ENDSTONE_EXE` 或 PATH 上的 `endstone`。两边都断言 CLR 起来、载体接管、父级启用载体、
 服务端正常停服。
 
-`tooth.json` 在**仓根**，一份包两个变体（lip 的 `tooth` 是整个 Git 仓库地址，子目录里的读不到）：
-
-| 变体 | 装什么 |
-|---|---|
-| 默认（不带 label） | LeviLamina 载体，落进 `plugins/hosihikari/` |
-| `#endstone` | Endstone 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 进服务端根目录 |
-
-```
-lip install github.com/HosihikariFramework/Shim
-lip install github.com/HosihikariFramework/Shim#endstone
-```
-
-发布附件的内容分别就是两个 `deploy.bat` 铺出来的那一份，打成 zip；版本号来自 git tag，
-所以**要能被装，仓库得先有 tag 与对应的 release**。
-
 ### 载体（Endstone）
 
 Windows：
