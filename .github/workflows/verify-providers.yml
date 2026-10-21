@@ -9,6 +9,10 @@ on:
         description: 'Shim version'
         required: true
         default: '0.7.0'
+      core_version:
+        description: 'Core version'
+        required: true
+        default: '0.7.1'
       csharp_version:
         description: 'C# Provider version'
         required: true
@@ -41,6 +45,7 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/install"
           cd "$RUNNER_TEMP/install"
+          lip install "github.com/HosihikariFramework/PluginManagement@${{ inputs.core_version }}"
           lip install "github.com/HosihikariFramework/Shim#endstone@${{ inputs.shim_version }}"
           lip install "github.com/HosihikariFramework/CSharpProvider@${{ inputs.csharp_version }}"
           lip install "github.com/HosihikariFramework/FSharpProvider@${{ inputs.fsharp_version }}"
@@ -83,6 +88,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\install" | Out-Null
           Set-Location "$env:RUNNER_TEMP\install"
+          lip install "github.com/HosihikariFramework/PluginManagement@${{ inputs.core_version }}"
           lip install "github.com/HosihikariFramework/Shim#endstone@${{ inputs.shim_version }}"
           lip install "github.com/HosihikariFramework/CSharpProvider@${{ inputs.csharp_version }}"
           lip install "github.com/HosihikariFramework/FSharpProvider@${{ inputs.fsharp_version }}"
