@@ -144,39 +144,6 @@
         "post_install": [],
         "pre_uninstall": []
       }
-    },
-    {
-      "label": "endstone_linux",
-      "platform": "linux-x64",
-      "dependencies": {
-        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
-      },
-      "assets": [
-        {
-          "type": "zip",
-          "urls": [
-            "https://{{tooth}}/releases/download/v{{version}}/hosihikari-endstone-linux-x64.zip"
-          ],
-          "placements": [
-            {
-              "type": "file",
-              "src": "hosihikari.so",
-              "dest": "plugins/hosihikari.so"
-            },
-            {
-              "type": "file",
-              "src": "libnethost.so",
-              "dest": "plugins/libnethost.so"
-            }
-          ]
-        }
-      ],
-      "preserve_files": [],
-      "remove_files": [],
-      "scripts": {
-        "post_install": [],
-        "pre_uninstall": []
-      }
     }
   ]
 }

@@ -177,14 +177,12 @@ repository, so anything below the root is invisible to it. One package, four var
 |---|---|
 | default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the native shim into `plugins/hosihikari/` |
 | `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/`; the Core package adds the managed files |
-| `#endstone` | The Endstone Windows carrier: the plugin DLL into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
-| `#endstone_linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/` |
+| `#endstone` | The Endstone carrier on Windows and Linux: Windows places the DLL and `nethost.dll` next to `bedrock_server.exe`; Linux places the `.so` and `libnethost.so` into `plugins/`. `platform` selects the archive |
 
 ```
 lip install github.com/HosihikariFramework/Shim                # self-hosted Linux
 lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
 lip install github.com/HosihikariFramework/Shim#endstone
-lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
 The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. Every

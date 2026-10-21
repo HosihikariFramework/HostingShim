@@ -158,14 +158,12 @@ cmake --build build --config Release
 |---|---|
 | 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，原生垫片进 `plugins/hosihikari/` |
 | `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/`；托管文件由 Core 包补齐 |
-| `#endstone` | Endstone Windows 载体：插件 dll 进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
-| `#endstone_linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/` |
+| `#endstone` | Endstone 载体，Windows 与 Linux 共用：Windows 把 dll 与 `nethost.dll` 放到 `bedrock_server.exe` 旁边；Linux 把 `.so` 与 `libnethost.so` 放进 `plugins/`。由 `platform` 选择附件 |
 
 ```
 lip install github.com/HosihikariFramework/Shim                # 自持态 Linux
 lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
 lip install github.com/HosihikariFramework/Shim#endstone
-lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
 无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。每个变体都依赖
