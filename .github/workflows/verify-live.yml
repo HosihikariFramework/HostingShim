@@ -229,7 +229,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$SERVER"
-          spec="github.com/HosihikariFramework/Shim#endstone_linux"
+          spec="github.com/HosihikariFramework/Shim#endstone"
           if [ -n "${{ inputs.version }}" ]; then spec="$spec@${{ inputs.version }}"; fi
           lip install "$spec"
           test -f plugins/hosihikari.so

@@ -2,7 +2,7 @@
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
   "tooth": "github.com/HosihikariFramework/Shim",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "info": {
     "name": "星光",
     "description": "把 CLR 托管进 BDS，并把插件管理交给星光框架核心",
@@ -101,6 +101,39 @@
               "type": "file",
               "src": "nethost.dll",
               "dest": "nethost.dll"
+            }
+          ]
+        }
+      ],
+      "preserve_files": [],
+      "remove_files": [],
+      "scripts": {
+        "post_install": [],
+        "pre_uninstall": []
+      }
+    },
+    {
+      "label": "endstone",
+      "platform": "linux-x64",
+      "dependencies": {
+        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
+      },
+      "assets": [
+        {
+          "type": "zip",
+          "urls": [
+            "https://{{tooth}}/releases/download/v{{version}}/hosihikari-endstone-linux-x64.zip"
+          ],
+          "placements": [
+            {
+              "type": "file",
+              "src": "hosihikari.so",
+              "dest": "plugins/hosihikari.so"
+            },
+            {
+              "type": "file",
+              "src": "libnethost.so",
+              "dest": "plugins/libnethost.so"
             }
           ]
         }

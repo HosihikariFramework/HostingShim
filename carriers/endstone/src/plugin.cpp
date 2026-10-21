@@ -179,7 +179,7 @@ void HosihikariPlugin::onDisable() {
 
 }  // namespace hosihikari::shim::endstone_carrier
 
-ENDSTONE_PLUGIN("hosihikari", "0.6.0", hosihikari::shim::endstone_carrier::HosihikariPlugin)
+ENDSTONE_PLUGIN("hosihikari", "0.6.1", hosihikari::shim::endstone_carrier::HosihikariPlugin)
 {
     prefix      = "Hosihikari";
     description = "把 CLR 托管进 BDS，并把插件管理交给星光框架核心";
