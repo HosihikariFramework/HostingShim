@@ -1,0 +1,48 @@
+name: verify-providers
+
+# 发布后的 Provider 安装验收：用真实 lip 装 Shim、Core 与三个 Provider，
+# 检查目录、清单与共享层排除。运行期行为由各 Provider 的宿主断言覆盖。
+on:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 安装 lip
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lip"
+          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
+            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
+          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
+          chmod +x "$RUNNER_TEMP/lip/lip"
+          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
+
+      - name: 安装载体与 Provider
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/install"
+          cd "$RUNNER_TEMP/install"
+          lip install 'github.com/HosihikariFramework/Shim#endstone'
+          lip install github.com/HosihikariFramework/CSharpProvider
+          lip install github.com/HosihikariFramework/FSharpProvider
+          lip install github.com/HosihikariFramework/RpcProvider
+
+      - name: 检查落盘
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/install"
+          test -f plugins/hosihikari/Hosihikari.PluginManager.dll
+          test -f plugins/hosihikari-csharp/Hosihikari.PluginProvider.CSharp.dll
+          test -f plugins/hosihikari-fsharp/Hosihikari.PluginProvider.FSharp.dll
+          test -f plugins/hosihikari-rpc/Hosihikari.PluginProvider.Rpc.dll
+          test "$(jq -r .name plugins/hosihikari-csharp/manifest.json)" = hosihikari-csharp
+          test "$(jq -r .name plugins/hosihikari-fsharp/manifest.json)" = hosihikari-fsharp
+          test "$(jq -r .name plugins/hosihikari-rpc/manifest.json)" = hosihikari-rpc
+          if find plugins/hosihikari-csharp plugins/hosihikari-fsharp plugins/hosihikari-rpc \
+              -name 'Hosihikari.Abstractions.dll' | grep -q .; then
+            echo 'a provider package contains the shared contract' >&2
+            exit 1
+          fi
+          find plugins -maxdepth 2 -type f | sort
