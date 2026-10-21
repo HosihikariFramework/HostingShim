@@ -20,7 +20,7 @@ on:
       fsharp_version:
         description: 'F# Provider version'
         required: true
-        default: '0.1.4'
+        default: '0.1.5'
       rpc_version:
         description: 'RPC Provider version'
         required: true
