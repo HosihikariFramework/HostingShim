@@ -1,6 +1,6 @@
 name: verify-providers
 
-# 发布后的 Provider 安装验收：用真实 lip 装 Shim、Core 与三个 Provider，
+# 发布后的 Provider 安装验收：在 Linux 与 Windows 上用真实 lip 装 Shim、Core 与三个 Provider，
 # 检查目录、清单与共享层排除。运行期行为由各 Provider 的宿主断言覆盖。
 on:
   workflow_dispatch:
@@ -63,3 +63,54 @@ jobs:
             exit 1
           fi
           find plugins -maxdepth 2 -type f | sort
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: 安装 lip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Invoke-WebRequest -Uri 'https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-win-x64.zip' -OutFile "$env:RUNNER_TEMP\lip.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\lip.zip" -DestinationPath "$env:RUNNER_TEMP\lip"
+          $exe = Get-ChildItem -Path "$env:RUNNER_TEMP\lip" -Filter lip.exe -Recurse | Select-Object -First 1
+          if (-not $exe) { throw 'lip.exe not found' }
+          $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 安装载体与 Provider
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\install" | Out-Null
+          Set-Location "$env:RUNNER_TEMP\install"
+          lip install "github.com/HosihikariFramework/Shim#endstone@${{ inputs.shim_version }}"
+          lip install "github.com/HosihikariFramework/CSharpProvider@${{ inputs.csharp_version }}"
+          lip install "github.com/HosihikariFramework/FSharpProvider@${{ inputs.fsharp_version }}"
+          lip install "github.com/HosihikariFramework/RpcProvider@${{ inputs.rpc_version }}"
+
+      - name: 检查落盘
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location "$env:RUNNER_TEMP\install"
+          $required = @(
+            'plugins/hosihikari/Hosihikari.PluginManager.dll',
+            'plugins/hosihikari-csharp/Hosihikari.PluginProvider.CSharp.dll',
+            'plugins/hosihikari-fsharp/Hosihikari.PluginProvider.FSharp.dll',
+            'plugins/hosihikari-rpc/Hosihikari.PluginProvider.Rpc.dll'
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path -LiteralPath $file)) { throw "missing $file" }
+          }
+          $manifests = @{
+            'plugins/hosihikari-csharp/manifest.json' = 'hosihikari-csharp'
+            'plugins/hosihikari-fsharp/manifest.json' = 'hosihikari-fsharp'
+            'plugins/hosihikari-rpc/manifest.json' = 'hosihikari-rpc'
+          }
+          foreach ($path in $manifests.Keys) {
+            $name = (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json).name
+            if ($name -ne $manifests[$path]) { throw "$path has name $name" }
+          }
+          $shared = Get-ChildItem -Path plugins/hosihikari-csharp,plugins/hosihikari-fsharp,plugins/hosihikari-rpc -Recurse -Filter Hosihikari.Abstractions.dll
+          if ($shared) { throw 'a provider package contains the shared contract' }
+          Get-ChildItem -Path plugins -Recurse -File | ForEach-Object { $_.FullName }
