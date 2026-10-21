@@ -20,7 +20,7 @@ on:
       rpc_version:
         description: 'RPC Provider version'
         required: true
-        default: '0.2.3'
+        default: '0.2.4'
 
 jobs:
   linux:
