@@ -4,7 +4,7 @@
 
 The **native layer** of the Hosihikari framework, named **HostingShim** (the CLR hosting shim): it
 hosts the CLR inside the BDS process and then hands control to the core,
-[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement).
+[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManager).
 
 It does four things: locate hostfxr, initialise the runtime from the core's `runtimeconfig.json`,
 load the core assembly, and fetch the managed entry point. Everything else — discovery,
@@ -180,13 +180,13 @@ repository, so anything below the root is invisible to it. One package, four var
 | `#endstone` | The Endstone carrier on Windows and Linux: Windows places the DLL and `nethost.dll` next to `bedrock_server.exe`; Linux places the `.so` and `libnethost.so` into `plugins/`. `platform` selects the archive |
 
 ```
-lip install github.com/HosihikariFramework/Shim                # self-hosted Linux
-lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
-lip install github.com/HosihikariFramework/Shim#endstone
+lip install github.com/HosihikariFramework/HostingShim                # self-hosted Linux
+lip install github.com/HosihikariFramework/HostingShim#levilamina     # LeviLamina
+lip install github.com/HosihikariFramework/HostingShim#endstone
 ```
 
 The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. Every
-variant depends on the [Core package](https://github.com/HosihikariFramework/PluginManagement),
+variant depends on the [Core package](https://github.com/HosihikariFramework/PluginManager),
 which lip installs into `plugins/hosihikari/`; the native shim checks the hosting-contract version
 before it starts the runtime. The release assets contain only native files; the
 `deploy.bat` and `deploy.sh` scripts also copy a sibling core checkout for source deployments; the

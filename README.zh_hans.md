@@ -3,7 +3,7 @@
 [English](README.md) | [简体中文](README.zh_hans.md)
 
 星光框架的**原生层**，职责名是 **HostingShim**（CLR 寄宿垫片）：把 CLR 托管进 BDS 进程，然后把控制权交给插件管理者
-[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement)。
+[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManager)。
 
 它只做四件事：定位 hostfxr、以插件管理者的 `runtimeconfig.json` 初始化运行时、载入插件管理者程序集、取托管入口。
 其余一切（发现、依赖、隔离、生命周期）都在托管侧。它不投影载体 API —— 那一侧是 **BindingShim**，
@@ -161,13 +161,13 @@ cmake --build build --config Release
 | `#endstone` | Endstone 载体，Windows 与 Linux 共用：Windows 把 dll 与 `nethost.dll` 放到 `bedrock_server.exe` 旁边；Linux 把 `.so` 与 `libnethost.so` 放进 `plugins/`。由 `platform` 选择附件 |
 
 ```
-lip install github.com/HosihikariFramework/Shim                # 自持态 Linux
-lip install github.com/HosihikariFramework/Shim#levilamina     # LeviLamina
-lip install github.com/HosihikariFramework/Shim#endstone
+lip install github.com/HosihikariFramework/HostingShim                # 自持态 Linux
+lip install github.com/HosihikariFramework/HostingShim#levilamina     # LeviLamina
+lip install github.com/HosihikariFramework/HostingShim#endstone
 ```
 
 无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。每个变体都依赖
-[Core 包](https://github.com/HosihikariFramework/PluginManagement)，lip 会把它装进
+[Core 包](https://github.com/HosihikariFramework/PluginManager)，lip 会把它装进
 `plugins/hosihikari/`；原生垫片启动前会检查入口契约版本。发布附件只含原生文件；
 `deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级插件管理者检出复制一份；版本来自 Git tag，
 所以**要先有标签与对应的 release 才装得了**。

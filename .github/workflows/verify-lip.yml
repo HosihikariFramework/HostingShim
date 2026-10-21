@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Package spec, e.g. github.com/HosihikariFramework/Shim#endstone'
+        description: 'Package spec, e.g. github.com/HosihikariFramework/HostingShim#endstone'
         required: true
-        default: 'github.com/HosihikariFramework/Shim#endstone'
+        default: 'github.com/HosihikariFramework/HostingShim#endstone'
 
 jobs:
   linux:
