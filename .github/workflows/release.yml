@@ -23,8 +23,13 @@ jobs:
         shell: pwsh
         run: |
           $tag = '${{ github.ref_name }}' -replace '^v', ''
-          $tooth = (Get-Content Shim/tooth.json -Raw | ConvertFrom-Json).version
-          if ($tooth -ne $tag) { throw "tooth.json 是 $tooth，标签是 $tag" }
+          $manifest = Get-Content Shim/tooth.json -Raw | ConvertFrom-Json
+          if ($manifest.version -ne $tag) { throw "tooth.json 是 $($manifest.version)，标签是 $tag" }
+          foreach ($variant in $manifest.variants) {
+            if ($variant.label -match '[^a-z0-9_]') {
+              throw "变体标签只能用小写字母、数字与下划线：$($variant.label)"
+            }
+          }
 
           $levilamina = Get-Content Shim/carriers/levilamina/xmake.lua -Raw
           if (-not $levilamina.Contains("modVersion = `"$tag`"")) {
