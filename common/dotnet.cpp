@@ -15,7 +15,7 @@
 namespace hosihikari::shim {
 namespace {
 
-// 与 Hosihikari.PluginManagement.NativeEntry.HostingContractVersion 保持一致。
+// 与 Hosihikari.NativeHostingEntry.HostingContractVersion 保持一致。
 // 入口方法集合、回调布局或生命周期约定不兼容变化时两边一起递增。
 constexpr int kHostingContractVersion = 1;
 

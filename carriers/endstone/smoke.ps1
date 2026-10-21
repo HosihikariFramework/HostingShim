@@ -1,7 +1,7 @@
 <#
-    Live smoke test for the Endstone carrier and the out-of-process provider.
+    Live smoke test for the Endstone carrier and the out-of-process loader.
 
-    Deploys the current shim + core, stages the provider package and two Node
+    Deploys the current shim + core, stages the loader package and two Node
     plugins (Hello, Crash), drives the server console through list / disable /
     enable / stop, and checks the log and the files the plugins wrote.
 
@@ -44,17 +44,17 @@ if ($running) {
     throw "a server is already running (PID $($running.Id -join ', ')); stop it first"
 }
 
-Write-Host '== build core and provider =='
+Write-Host '== build core and loader =='
 & dotnet build (Join-Path $core 'src\Hosihikari.PluginManager.csproj') -c Release --nologo | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'the managed core failed to build' }
-& dotnet build (Join-Path $rpc 'src\Hosihikari.PluginProvider.Rpc.csproj') -c Release --nologo | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'the rpc provider failed to build' }
+& dotnet build (Join-Path $rpc 'src\Hosihikari.PluginLoader.Rpc.csproj') -c Release --nologo | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'the rpc loader failed to build' }
 
 Write-Host '== deploy the shim =='
 & (Join-Path $here 'deploy.bat') $ServerRoot | Out-Null
 
-function Write-Manifest([string]$Path, [string]$Name, [string]$Entry, [string]$Provider, [object]$Command, [object]$Dependencies) {
-    $extra = [ordered]@{ api = '2'; format_version = '1'; provider = $Provider }
+function Write-Manifest([string]$Path, [string]$Name, [string]$Entry, [string]$Loader, [object]$Command, [object]$Dependencies) {
+    $extra = [ordered]@{ api_version = '2'; manifest_version = '1'; loader = $Loader }
     if ($null -ne $Command) { $extra.command = $Command }
     $manifest = [ordered]@{
         name         = $Name
@@ -67,15 +67,15 @@ function Write-Manifest([string]$Path, [string]$Name, [string]$Entry, [string]$P
     $manifest | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
 }
 
-Write-Host '== stage the provider package =='
+Write-Host '== stage the loader package =='
 $rpcPackage = Join-Path $ServerRoot 'plugins\hosihikari-rpc'
 if (Test-Path $rpcPackage) { Remove-Item $rpcPackage -Recurse -Force }
 New-Item -ItemType Directory -Path $rpcPackage | Out-Null
 $rpcOut = Join-Path $rpc 'src\bin\Release\net10.0'
 Copy-Item (Join-Path $rpcOut '*.dll') $rpcPackage
-Remove-Item (Join-Path $rpcPackage 'Hosihikari.Abstractions.dll') -ErrorAction SilentlyContinue
-Copy-Item (Join-Path $rpcOut 'Hosihikari.PluginProvider.Rpc.deps.json') $rpcPackage -ErrorAction SilentlyContinue
-Write-Manifest (Join-Path $rpcPackage 'manifest.json') 'hosihikari-rpc' 'Hosihikari.PluginProvider.Rpc.dll' 'assembly' $null @(@{ name = 'hosihikari' })
+Remove-Item (Join-Path $rpcPackage 'Hosihikari.Plugin.Abstractions.dll') -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $rpcOut 'Hosihikari.PluginLoader.Rpc.deps.json') $rpcPackage -ErrorAction SilentlyContinue
+Write-Manifest (Join-Path $rpcPackage 'manifest.json') 'hosihikari-rpc' 'Hosihikari.PluginLoader.Rpc.dll' 'assembly' $null @(@{ name = 'hosihikari' })
 
 Write-Host '== stage the Node plugins =='
 function Stage-RpcPlugin([string]$Name, [string]$Entry) {

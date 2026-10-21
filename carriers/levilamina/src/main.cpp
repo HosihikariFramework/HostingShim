@@ -98,7 +98,7 @@ bool ShimMod::load() {
     auto const  dir      = self->getModDir();
     auto const  assembly = dir / L"Hosihikari.PluginManager.dll";
     // 三个入口都住在同一个类型上，取法也一样。
-    constexpr auto entryType = L"Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager";
+    constexpr auto entryType = L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager";
 
     logger.info("正在把 CLR 托管进 BDS 进程");
     component_entry_point_fn start = nullptr;

@@ -59,7 +59,7 @@ void removalBridge(void* /*user*/, char const* nameUtf8) {
 
 /// 三个入口都住在同一个类型上，取法也一样。
 constexpr auto kEntryType =
-    CHARTEXT("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
+    CHARTEXT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
 
 }  // namespace
 
@@ -151,7 +151,7 @@ void HosihikariPlugin::onEnable() {
 }
 
 void HosihikariPlugin::onDisable() {
-    // reload 会走这里。先把子插件收回；核心与 Provider 槽位保留，
+    // reload 会走这里。先把子插件收回；核心与 Loader 槽位保留，
     // 下一次 onLoad 复用它们、只让新 loader 重新交付子插件。正常关服也走同一条收尾路径。
     auto const component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
     component_entry_point_fn stop = nullptr;

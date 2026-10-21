@@ -2,10 +2,10 @@
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
-星光框架的**原生层**，职责名是 **HostingShim**（CLR 寄宿垫片）：把 CLR 托管进 BDS 进程，然后把控制权交给核心
+星光框架的**原生层**，职责名是 **HostingShim**（CLR 寄宿垫片）：把 CLR 托管进 BDS 进程，然后把控制权交给插件管理者
 [`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManagement)。
 
-它只做四件事：定位 hostfxr、以核心的 `runtimeconfig.json` 初始化运行时、载入核心程序集、取托管入口。
+它只做四件事：定位 hostfxr、以插件管理者的 `runtimeconfig.json` 初始化运行时、载入插件管理者程序集、取托管入口。
 其余一切（发现、依赖、隔离、生命周期）都在托管侧。它不投影载体 API —— 那一侧是 **BindingShim**，
 由星光产出（ADR-0021）。
 
@@ -30,7 +30,7 @@ carriers\levilamina\deploy.bat <服务端根目录>
 
 `build.bat` 自己用 `vswhere` 找 vcvars、接上 clang-cl；出网要走代理的网络请先设好 `https_proxy`
 （脚本不替你设）。产物与清单由上游的 `@levibuildscript/modpacker` 落到 `bin/hosihikari/`，
-`deploy.bat` 再把它与托管核心、nethost.dll 一起铺进 `plugins/hosihikari/`。
+`deploy.bat` 再把它与插件管理者、nethost.dll 一起铺进 `plugins/hosihikari/`。
 
 真机的一条龙 —— 起服、依次打 `show`/`disable`/`enable`/`unload`/`load`、再断言日志：
 
@@ -48,11 +48,11 @@ Endstone 载体另有一条真机路径。它通过 Endstone CLI 启动服务端
 powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone 服务端根目录>
 ```
 
-它铺 Provider 包与两个 Node 插件，依次打 `plugins` / `endstone:disable` / `endstone:enable` /
+它铺加载器包与两个 Node 插件，依次打 `plugins` / `endstone:disable` / `endstone:enable` /
 `stop`，断言插件写出的文件、崩溃故障与载体的移除告警。CLI 默认找
 `%TEMP%\endstone-venv\Scripts\endstone.exe`，也可以用 `ENDSTONE_EXE` 指。
 
-只验载体本身的一条短路径，对着已经用 lip 装好的包跑，不铺 Provider 与插件：
+只验载体本身的一条短路径，对着已经用 lip 装好的包跑，不铺加载器与插件：
 
 ```
 powershell -File carriers\endstone\smoke-live.ps1 -ServerRoot <服务端根目录>
@@ -81,12 +81,12 @@ endstone -s <bedrock_server 所在目录>
 ```
 
 `build.sh` 需要 CMake 与 C++20 编译器；SDK 与 nlohmann/json 由 CMake 浅克隆，nethost 从 nuget.org 取。
-`deploy.sh` 铺插件、`libnethost.so` 与托管核心；插件带 `$ORIGIN`，所以 `libnethost.so` 放在它旁边。
+`deploy.sh` 铺插件、`libnethost.so` 与插件管理者；插件带 `$ORIGIN`，所以 `libnethost.so` 放在它旁边。
 
 与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
 
 - **插件是按文件加载的**，所以载体本身是 `plugins/hosihikari.dll`（Linux 上是
-  `plugins/hosihikari.so`）一个文件；托管核心仍在 `plugins/hosihikari/`（父级按插件名给的数据目录）。
+  `plugins/hosihikari.so`）一个文件；插件管理者仍在 `plugins/hosihikari/`（父级按插件名给的数据目录）。
   我们的包是目录，因此覆盖了 `loadPlugins`。
 - **nethost 库必须能被解析到**：Windows 上 `nethost.dll` 放在 `bedrock_server.exe` 旁边，因为
   Endstone 用普通 `LoadLibrary` 加载插件，依赖按"应用目录 + 当前目录"找；Linux 上
@@ -104,8 +104,8 @@ bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
 ```
 
 `hosihikari-server` 用 `LD_PRELOAD` 预加载 `plugins/hosihikari/libhosihikari.so`。垫片拦截
-`__libc_start_main`，在 BDS 的 `main` 之前启动 CLR 与核心，核心自己枚举 `plugins/`
-（ADR-0005 / 0013 / 0018）。启动器会先切到服务端目录，核心的相对路径因此落在正确的服务端根上；
+`__libc_start_main`，在 BDS 的 `main` 之前启动 CLR 与插件管理者，插件管理者自己枚举 `plugins/`
+（ADR-0005 / 0013 / 0018）。启动器会先切到服务端目录，插件管理者的相对路径因此落在正确的服务端根上；
 需要系统已装 .NET 10 运行时。
 
 自持态的目标是 BDS 1.21.3：容器本身与 BDS 版本无关，但能力面（星光）止于那里（ADR-0001）。
@@ -169,7 +169,7 @@ lip install github.com/HosihikariFramework/Shim#endstone
 无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。每个变体都依赖
 [Core 包](https://github.com/HosihikariFramework/PluginManagement)，lip 会把它装进
 `plugins/hosihikari/`；原生垫片启动前会检查入口契约版本。发布附件只含原生文件；
-`deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级核心检出复制一份；版本来自 Git tag，
+`deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级插件管理者检出复制一份；版本来自 Git tag，
 所以**要先有标签与对应的 release 才装得了**。
 打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 post_install 脚本会给
 `hosihikari-server` 加可执行位；跳过脚本时请自己 `chmod +x hosihikari-server`。

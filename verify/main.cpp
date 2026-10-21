@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
 
     const auto configPath = AsCharT(directory + "Hosihikari.PluginManager.runtimeconfig.json");
     const auto assemblyPath = AsCharT(directory + "Hosihikari.PluginManager.dll");
-    const auto typeName = AsCharT("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
+    const auto typeName = AsCharT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
     const auto methodName = AsCharT("Start");
 
     std::printf("=== 原生宿主：%s ===\n", AsNarrow(assemblyPath.c_str()).c_str());
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 
     component_entry_point_fn entry = nullptr;
     code = hosihikari::shim::GetManagedEntry(assemblyPath.c_str(), typeName.c_str(), methodName.c_str(), &entry);
-    if (!Report("载入程序集并取托管入口 NativeEntry.Start", code)) {
+    if (!Report("载入程序集并取托管入口 NativeHostingEntry.Start", code)) {
         return 1;
     }
 

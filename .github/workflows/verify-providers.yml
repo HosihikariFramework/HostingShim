@@ -1,7 +1,7 @@
 name: verify-providers
 
-# 发布后的 Provider 安装验收：在 Linux 与 Windows 上用真实 lip 装 Shim、Core 与三个 Provider，
-# 检查目录、清单与共享层排除。运行期行为由各 Provider 的宿主断言覆盖。
+# 发布后的 Loader 安装验收：在 Linux 与 Windows 上用真实 lip 装 Shim、Core 与三个 Loader，
+# 检查目录、清单与共享层排除。运行期行为由各 Loader 的宿主断言覆盖。
 on:
   workflow_dispatch:
     inputs:
@@ -14,15 +14,15 @@ on:
         required: true
         default: '0.7.2'
       csharp_version:
-        description: 'C# Provider version'
+        description: 'C# Loader version'
         required: true
         default: '0.2.3'
       fsharp_version:
-        description: 'F# Provider version'
+        description: 'F# Loader version'
         required: true
         default: '0.1.5'
       rpc_version:
-        description: 'RPC Provider version'
+        description: 'RPC Loader version'
         required: true
         default: '0.2.4'
 
@@ -40,7 +40,7 @@ jobs:
           chmod +x "$RUNNER_TEMP/lip/lip"
           echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
 
-      - name: 安装载体与 Provider
+      - name: 安装载体与 Loader
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/install"
@@ -56,15 +56,15 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/install"
           test -f plugins/hosihikari/Hosihikari.PluginManager.dll
-          test -f plugins/hosihikari-csharp/Hosihikari.PluginProvider.CSharp.dll
-          test -f plugins/hosihikari-fsharp/Hosihikari.PluginProvider.FSharp.dll
-          test -f plugins/hosihikari-rpc/Hosihikari.PluginProvider.Rpc.dll
+          test -f plugins/hosihikari-csharp/Hosihikari.PluginLoader.CSharp.dll
+          test -f plugins/hosihikari-fsharp/Hosihikari.PluginLoader.FSharp.dll
+          test -f plugins/hosihikari-rpc/Hosihikari.PluginLoader.Rpc.dll
           test "$(jq -r .name plugins/hosihikari-csharp/manifest.json)" = hosihikari-csharp
           test "$(jq -r .name plugins/hosihikari-fsharp/manifest.json)" = hosihikari-fsharp
           test "$(jq -r .name plugins/hosihikari-rpc/manifest.json)" = hosihikari-rpc
           if find plugins/hosihikari-csharp plugins/hosihikari-fsharp plugins/hosihikari-rpc \
-              -name 'Hosihikari.Abstractions.dll' | grep -q .; then
-            echo 'a provider package contains the shared contract' >&2
+              -name 'Hosihikari.Plugin.Abstractions.dll' | grep -q .; then
+            echo 'a loader package contains the shared contract' >&2
             exit 1
           fi
           find plugins -maxdepth 2 -type f | sort
@@ -82,7 +82,7 @@ jobs:
           if (-not $exe) { throw 'lip.exe not found' }
           $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: 安装载体与 Provider
+      - name: 安装载体与 Loader
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -101,9 +101,9 @@ jobs:
           Set-Location "$env:RUNNER_TEMP\install"
           $required = @(
             'plugins/hosihikari/Hosihikari.PluginManager.dll',
-            'plugins/hosihikari-csharp/Hosihikari.PluginProvider.CSharp.dll',
-            'plugins/hosihikari-fsharp/Hosihikari.PluginProvider.FSharp.dll',
-            'plugins/hosihikari-rpc/Hosihikari.PluginProvider.Rpc.dll'
+            'plugins/hosihikari-csharp/Hosihikari.PluginLoader.CSharp.dll',
+            'plugins/hosihikari-fsharp/Hosihikari.PluginLoader.FSharp.dll',
+            'plugins/hosihikari-rpc/Hosihikari.PluginLoader.Rpc.dll'
           )
           foreach ($file in $required) {
             if (-not (Test-Path -LiteralPath $file)) { throw "missing $file" }
@@ -117,6 +117,6 @@ jobs:
             $name = (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json).name
             if ($name -ne $manifests[$path]) { throw "$path has name $name" }
           }
-          $shared = Get-ChildItem -Path plugins/hosihikari-csharp,plugins/hosihikari-fsharp,plugins/hosihikari-rpc -Recurse -Filter Hosihikari.Abstractions.dll
-          if ($shared) { throw 'a provider package contains the shared contract' }
+          $shared = Get-ChildItem -Path plugins/hosihikari-csharp,plugins/hosihikari-fsharp,plugins/hosihikari-rpc -Recurse -Filter Hosihikari.Plugin.Abstractions.dll
+          if ($shared) { throw 'a loader package contains the shared contract' }
           Get-ChildItem -Path plugins -Recurse -File | ForEach-Object { $_.FullName }

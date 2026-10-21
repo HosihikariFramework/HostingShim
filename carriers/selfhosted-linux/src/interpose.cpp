@@ -48,7 +48,7 @@ void StartSelfHosted() {
         const int code = hosihikari::shim::StartRuntime(
             runtimeConfig.c_str(),
             component.c_str(),
-            "Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager",
+            "Hosihikari.NativeHostingEntry, Hosihikari.PluginManager",
             "Start",
             &start
         );

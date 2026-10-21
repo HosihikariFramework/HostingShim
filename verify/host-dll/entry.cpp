@@ -72,7 +72,7 @@ SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory) {
 
     const std::wstring configPath = Widen((directory + "Hosihikari.PluginManager.runtimeconfig.json").c_str());
     const std::wstring assemblyPath = Widen((directory + "Hosihikari.PluginManager.dll").c_str());
-    const std::wstring typeName = Widen("Hosihikari.PluginManagement.NativeEntry, Hosihikari.PluginManager");
+    const std::wstring typeName = Widen("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
     const std::wstring methodName = Widen("Start");
     Trace("02 路径已备好");
 

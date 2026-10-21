@@ -55,13 +55,13 @@ injects the runtime into the vanilla `bedrock_server.exe`; the CLI and Node must
 powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone server root>
 ```
 
-It stages the provider package and two Node plugins, drives `plugins` / `endstone:disable` /
+It stages the loader package and two Node plugins, drives `plugins` / `endstone:disable` /
 `endstone:enable` / `stop`, and checks the plugin files, the crash fault and the carrier's removal
 warning. The CLI is looked up at `%TEMP%\endstone-venv\Scripts\endstone.exe`, then `ENDSTONE_EXE`,
 then PATH.
 
 A shorter carrier-only pass runs against an already installed lip package, without staging
-providers or plugins:
+loaders or plugins:
 
 ```
 powershell -File carriers\endstone\smoke-live.ps1 -ServerRoot <server root>
