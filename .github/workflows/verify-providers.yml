@@ -12,7 +12,7 @@ on:
       core_version:
         description: 'Core version'
         required: true
-        default: '0.7.1'
+        default: '0.7.2'
       csharp_version:
         description: 'C# Provider version'
         required: true
