@@ -2,7 +2,7 @@
   "format_version": 3,
   "format_uuid": "289f771f-2c9a-4d73-9f3f-8492495a924d",
   "tooth": "github.com/HosihikariFramework/Shim",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "info": {
     "name": "星光",
     "description": "把 CLR 托管进 BDS，并把插件管理交给星光框架核心",
@@ -18,7 +18,9 @@
     {
       "label": "",
       "platform": "linux-x64",
-      "dependencies": {},
+      "dependencies": {
+        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
+      },
       "assets": [
         {
           "type": "zip",
@@ -52,7 +54,8 @@
       "label": "levilamina",
       "platform": "win-x64",
       "dependencies": {
-        "github.com/LiteLDev/LeviLamina": "26.51.*"
+        "github.com/LiteLDev/LeviLamina": "26.51.*",
+        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
       },
       "assets": [
         {
@@ -79,7 +82,9 @@
     {
       "label": "endstone",
       "platform": "win-x64",
-      "dependencies": {},
+      "dependencies": {
+        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
+      },
       "assets": [
         {
           "type": "zip",
@@ -96,11 +101,6 @@
               "type": "file",
               "src": "nethost.dll",
               "dest": "nethost.dll"
-            },
-            {
-              "type": "dir",
-              "src": "hosihikari/",
-              "dest": "plugins/hosihikari/"
             }
           ]
         }
@@ -115,7 +115,9 @@
     {
       "label": "endstone_linux",
       "platform": "linux-x64",
-      "dependencies": {},
+      "dependencies": {
+        "github.com/HosihikariFramework/PluginManagement": "0.6.*"
+      },
       "assets": [
         {
           "type": "zip",
@@ -132,11 +134,6 @@
               "type": "file",
               "src": "libnethost.so",
               "dest": "plugins/libnethost.so"
-            },
-            {
-              "type": "dir",
-              "src": "hosihikari/",
-              "dest": "plugins/hosihikari/"
             }
           ]
         }

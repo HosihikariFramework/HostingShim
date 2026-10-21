@@ -156,10 +156,10 @@ cmake --build build --config Release
 
 | 变体 | 装什么 |
 |---|---|
-| 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，垫片与托管核心进 `plugins/hosihikari/` |
-| `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/` |
-| `#endstone` | Endstone Windows 载体：插件 dll 与托管核心进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
-| `#endstone_linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/`，托管核心进 `plugins/hosihikari/` |
+| 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，原生垫片进 `plugins/hosihikari/` |
+| `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/`；托管文件由 Core 包补齐 |
+| `#endstone` | Endstone Windows 载体：插件 dll 进 `plugins/`，`nethost.dll` 放到 `bedrock_server.exe` 旁边 |
+| `#endstone_linux` | Endstone Linux 载体：插件 `.so` 与 `libnethost.so` 进 `plugins/` |
 
 ```
 lip install github.com/HosihikariFramework/Shim                # 自持态 Linux
@@ -168,8 +168,11 @@ lip install github.com/HosihikariFramework/Shim#endstone
 lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
-无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。发布附件就是 `deploy.bat` 与
-`deploy.sh` 铺出来的那一份打成 zip；版本来自 Git tag，所以**要先有标签与对应的 release 才装得了**。
+无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。每个变体都依赖
+[Core 包](https://github.com/HosihikariFramework/PluginManagement)，lip 会把它装进
+`plugins/hosihikari/`；原生垫片启动前会检查入口契约版本。发布附件只含原生文件；
+`deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级核心检出复制一份；版本来自 Git tag，
+所以**要先有标签与对应的 release 才装得了**。
 打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 post_install 脚本会给
 `hosihikari-server` 加可执行位；跳过脚本时请自己 `chmod +x hosihikari-server`。
 

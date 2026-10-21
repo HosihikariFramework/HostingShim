@@ -175,10 +175,10 @@ repository, so anything below the root is invisible to it. One package, four var
 
 | Variant | What it installs |
 |---|---|
-| default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the shim and managed core into `plugins/hosihikari/` |
-| `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/` |
-| `#endstone` | The Endstone Windows carrier: the plugin DLL and the managed core into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
-| `#endstone_linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/`, the managed core into `plugins/hosihikari/` |
+| default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the native shim into `plugins/hosihikari/` |
+| `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/`; the Core package adds the managed files |
+| `#endstone` | The Endstone Windows carrier: the plugin DLL into `plugins/`, `nethost.dll` next to `bedrock_server.exe` |
+| `#endstone_linux` | The Endstone Linux carrier: the plugin `.so` and `libnethost.so` into `plugins/` |
 
 ```
 lip install github.com/HosihikariFramework/Shim                # self-hosted Linux
@@ -187,8 +187,11 @@ lip install github.com/HosihikariFramework/Shim#endstone
 lip install github.com/HosihikariFramework/Shim#endstone_linux
 ```
 
-The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. The
-release assets are exactly what the `deploy.bat` and `deploy.sh` scripts lay out, zipped; the
+The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. Every
+variant depends on the [Core package](https://github.com/HosihikariFramework/PluginManagement),
+which lip installs into `plugins/hosihikari/`; the native shim checks the hosting-contract version
+before it starts the runtime. The release assets contain only native files; the
+`deploy.bat` and `deploy.sh` scripts also copy a sibling core checkout for source deployments; the
 version comes from a Git tag, so **a tag and a matching release are required before any of this can
 be installed**. Tagging `v*` runs the release workflow that builds all four archives and attaches
 them to one release. The self-hosted post-install script marks `hosihikari-server` executable; if

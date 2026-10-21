@@ -41,6 +41,7 @@ int GetManagedEntry(
     component_entry_point_fn* entryPoint);
 
 /// 把启动序列一次走完。任一步失败即返回它的错误码，不继续。
+/// 核心缺少契约版本入口时返回 -2；版本与垫片不一致时返回 -3。
 int StartRuntime(
     const char_t* runtimeConfigPath,
     const char_t* assemblyPath,

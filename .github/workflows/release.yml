@@ -18,29 +18,6 @@ jobs:
         with:
           path: Shim
 
-      # 托管核心在另一个仓。两个 deploy 脚本按 `..\..\..\Hosihikari.PluginManager` 找它，
-      # 所以两份 checkout 的目录名与相对位置要照着摆。
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/PluginManagement
-          path: Hosihikari.PluginManager
-
-      # 契约与核心一起改：并列摆放才能编到新契约。
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/Abstractions
-          path: Hosihikari.Abstractions
-
-      # 本机库的 RID 优先解析需要 fork；核心按 ../.. 找它。
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: Hosihikari.McMaster.NETCore.Plugins
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-
       # 标签、tooth 与两个载体报出的版本必须是同一个；漂了就在构建前停下。
       - name: 版本一致
         shell: pwsh
@@ -58,9 +35,6 @@ jobs:
           if (-not $endstone.Contains("ENDSTONE_PLUGIN(`"hosihikari`", `"$tag`"")) {
             throw "Endstone 载体的版本不是 $tag"
           }
-
-      - name: 托管核心
-        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
 
       - uses: xmake-io/github-action-setup-xmake@v1
 
@@ -95,8 +69,8 @@ jobs:
           $out  = Join-Path $root 'out'
           New-Item -ItemType Directory -Force $out | Out-Null
 
-          & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina"
-          & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone"
+          & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina" shim-only
+          & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only
 
           # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
           # 这样 zip 顶层不会多出一层 ./ 或目录名。
@@ -104,15 +78,14 @@ jobs:
                 -C "$root\stage-levilamina\plugins" hosihikari
           if ($LASTEXITCODE -ne 0) { throw 'packaging the LeviLamina variant failed' }
 
-          # Endstone 那份的顶层是三样东西，分处两个目录 —— 先摆成一个只含这三样的目录。
+          # Endstone 那份只带原生插件与 nethost；托管核心由独立 Core 包落盘。
           $zipRoot = Join-Path $root 'ziproot-endstone'
           New-Item -ItemType Directory -Force $zipRoot | Out-Null
           Copy-Item "$root\stage-endstone\plugins\hosihikari.dll" $zipRoot
           Copy-Item "$root\stage-endstone\nethost.dll" $zipRoot
-          Copy-Item -Recurse "$root\stage-endstone\plugins\hosihikari" $zipRoot
 
           & tar -a -c -f "$out\hosihikari-endstone-windows-x64.zip" `
-                -C $zipRoot hosihikari.dll nethost.dll hosihikari
+                -C $zipRoot hosihikari.dll nethost.dll
           if ($LASTEXITCODE -ne 0) { throw 'packaging the Endstone variant failed' }
 
           Get-ChildItem $out | Select-Object Name, Length
@@ -130,30 +103,6 @@ jobs:
         with:
           path: Shim
 
-      # 与 Windows 那份同样的并列摆放：核心按 ../../../Hosihikari.PluginManager 找它，
-      # 契约与 fork 让核心按源码编。
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/PluginManagement
-          path: Hosihikari.PluginManager
-
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/Abstractions
-          path: Hosihikari.Abstractions
-
-      - uses: actions/checkout@v7
-        with:
-          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: Hosihikari.McMaster.NETCore.Plugins
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: 托管核心
-        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
-
       # Endstone SDK 在 UNIX 上钉住 libc++（与 BDS 的 ABI 对齐）；GCC 不认 -stdlib。
       - name: Clang 与 libc++
         run: |
@@ -169,13 +118,12 @@ jobs:
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE"
-          "$root/Shim/carriers/endstone/deploy.sh" "$root/stage-endstone-linux"
+          "$root/Shim/carriers/endstone/deploy.sh" "$root/stage-endstone-linux" shim-only
 
           zip_root="$root/ziproot-endstone-linux"
           mkdir -p "$zip_root" "$root/out"
           cp "$root/stage-endstone-linux/plugins/hosihikari.so" "$zip_root/"
           cp "$root/stage-endstone-linux/plugins/libnethost.so" "$zip_root/"
-          cp -r "$root/stage-endstone-linux/plugins/hosihikari" "$zip_root/"
           (cd "$zip_root" && zip -qr "$root/out/hosihikari-endstone-linux-x64.zip" .)
 
           ls -l "$root/out"
@@ -188,7 +136,7 @@ jobs:
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE"
-          "$root/Shim/carriers/selfhosted-linux/deploy.sh" "$root/stage-selfhosted-linux"
+          "$root/Shim/carriers/selfhosted-linux/deploy.sh" "$root/stage-selfhosted-linux" shim-only
 
           zip_root="$root/ziproot-selfhosted-linux"
           mkdir -p "$zip_root"

@@ -84,6 +84,7 @@ jobs:
           lip install $spec
           if (-not (Test-Path 'plugins/hosihikari.dll')) { throw 'the carrier dll is missing' }
           if (-not (Test-Path 'nethost.dll')) { throw 'nethost.dll is missing' }
+          if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
 
       - name: 冒烟
         shell: pwsh
@@ -129,6 +130,7 @@ jobs:
           if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
           lip install $spec
           if (-not (Test-Path 'bedrock_server_mod.exe')) { throw 'LeviLamina did not produce bedrock_server_mod.exe' }
+          if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
 
       - name: 冒烟
         shell: pwsh
@@ -232,6 +234,7 @@ jobs:
           lip install "$spec"
           test -f plugins/hosihikari.so
           test -f plugins/libnethost.so
+          test -f plugins/hosihikari/Hosihikari.PluginManager.dll
           ls -l plugins/hosihikari.so plugins/libnethost.so
           readelf -d plugins/hosihikari.so | grep -E 'RPATH|RUNPATH' || true
           ldd plugins/hosihikari.so || true
@@ -322,6 +325,7 @@ jobs:
           lip install "$spec"
           test -f plugins/hosihikari/libhosihikari.so
           test -f plugins/hosihikari/libnethost.so
+          test -f plugins/hosihikari/Hosihikari.PluginManager.dll
           test -x hosihikari-server
 
       - name: 冒烟

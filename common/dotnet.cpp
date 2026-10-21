@@ -15,6 +15,10 @@
 namespace hosihikari::shim {
 namespace {
 
+// 与 Hosihikari.PluginManagement.NativeEntry.HostingContractVersion 保持一致。
+// 入口方法集合、回调布局或生命周期约定不兼容变化时两边一起递增。
+constexpr int kHostingContractVersion = 1;
+
 void* g_hostfxr = nullptr;
 hostfxr_initialize_for_runtime_config_fn g_initializeForRuntimeConfig = nullptr;
 hostfxr_get_runtime_delegate_fn g_getRuntimeDelegate = nullptr;
@@ -172,6 +176,17 @@ int StartRuntime(
     rc = InitializeRuntime(runtimeConfigPath, assemblyPath);
     if (rc != 0) {
         return rc;
+    }
+
+    // 先确认核心与垫片说同一版入口契约，再取真正的入口。
+    component_entry_point_fn contractVersion = nullptr;
+    rc = GetManagedEntry(
+        assemblyPath, typeName, CHARTEXT("GetHostingContractVersion"), &contractVersion);
+    if (rc != 0 || contractVersion == nullptr) {
+        return -2;
+    }
+    if (contractVersion(nullptr, 0) != kHostingContractVersion) {
+        return -3;
     }
 
     return GetManagedEntry(assemblyPath, typeName, methodName, entryPoint);
