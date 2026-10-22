@@ -6,7 +6,6 @@ body:
     attributes:
       value: |
         Search existing issues and the [documentation](https://hf.srcz.one/) first.
-        Report security problems through the repository's security policy.
   - type: dropdown
     id: carrier
     attributes:
