@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Hosihikari Framework documentation
+    url: https://hf.srcz.one/
+    about: Setup guides, API reference, and troubleshooting.
