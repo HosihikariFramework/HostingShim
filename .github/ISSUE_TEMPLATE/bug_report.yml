@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible HostingShim or carrier defect.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues and the [documentation](https://hf.srcz.one/) first.
+        Report security problems through the repository's security policy.
+  - type: dropdown
+    id: carrier
+    attributes:
+      label: Carrier
+      options:
+        - LeviLamina (Windows)
+        - Endstone (Windows)
+        - Endstone (Linux)
+        - Self-hosted Linux
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: HostingShim, PluginManager, BDS, and carrier versions.
+      placeholder: "HostingShim 1.1.0, PluginManager 1.1.0, BDS 1.26.51, LeviLamina 26.51.7"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Host OS
+      placeholder: Windows 11 x64 / Ubuntu 24.04 x64
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the actual behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal commands, carrier configuration, and plugin packages that reproduce the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant server and loader output. Remove secrets and personal data.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and the documentation.
+          required: true
+        - label: This report contains no secrets or personal data.
+          required: true

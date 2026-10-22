@@ -1,0 +1,33 @@
+name: Documentation issue
+description: Report incorrect, missing, or unclear documentation.
+title: "[Docs]: "
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: URL or repository path of the page.
+      placeholder: https://hf.srcz.one/...
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong?
+      description: Quote the incorrect text or describe what is missing.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested change
+      description: Proposed wording, example, or link.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the current English and Chinese pages.
+          required: true
