@@ -1,10 +1,10 @@
-# Hosihikari.Shim
+# HostingShim
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
 The **native layer** of the Hosihikari framework, named **HostingShim** (the CLR hosting shim): it
 hosts the CLR inside the BDS process and then hands control to the core,
-[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManager).
+[`PluginManager`](https://github.com/HosihikariFramework/PluginManager).
 
 It does four things: locate hostfxr, initialise the runtime from the core's `runtimeconfig.json`,
 load the core assembly, and fetch the managed entry point. Everything else — discovery,
@@ -44,7 +44,7 @@ powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <server root>
 ```
 
 It first runs the managed assertion host (which also produces the plugin packages), so a sibling
-`Hosihikari.PluginManager` checkout is required. It needs a server with LeviLamina already
+`PluginManager` checkout is required. It needs a server with LeviLamina already
 installed, and it **will not kill somebody else's server** — if one is already running it stops
 with an error.
 

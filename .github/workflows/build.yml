@@ -65,24 +65,24 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginManager
-          path: Hosihikari.PluginManager
+          path: PluginManager
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginAbstractions
-          path: Hosihikari.Abstractions
+          path: Plugin.Abstractions
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: Hosihikari.McMaster.NETCore.Plugins
+          path: McMaster.NETCore.Plugins
 
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: 托管核心
-        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
+        run: dotnet build PluginManager/src/Hosihikari.PluginManager.csproj -c Release
 
       # Endstone SDK 在 UNIX 上钉住 libc++（与 BDS 的 ABI 对齐）；GCC 不认 -stdlib。
       - name: Clang 与 libc++
@@ -116,24 +116,24 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginManager
-          path: Hosihikari.PluginManager
+          path: PluginManager
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginAbstractions
-          path: Hosihikari.Abstractions
+          path: Plugin.Abstractions
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: Hosihikari.McMaster.NETCore.Plugins
+          path: McMaster.NETCore.Plugins
 
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: 托管核心
-        run: dotnet build Hosihikari.PluginManager/src/Hosihikari.PluginManager.csproj -c Release
+        run: dotnet build PluginManager/src/Hosihikari.PluginManager.csproj -c Release
 
       - name: 构建
         run: Shim/carriers/selfhosted-linux/build.sh

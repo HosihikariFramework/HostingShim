@@ -15,7 +15,7 @@ if "%~1"=="" (
 REM The package name is the shim's mod name in the parent's namespace (ADR-0006).
 set "MODNAME=hosihikari"
 set "HERE=%~dp0"
-set "MANAGED=%HERE%..\..\..\Hosihikari.PluginManager\src\bin\Release\net10.0"
+set "MANAGED=%HERE%..\..\..\PluginManager\src\bin\Release\net10.0"
 set "PACKED=%HERE%bin\%MODNAME%"
 set "NETHOST=%HERE%build\nethost\runtimes\win-x64\native\nethost.dll"
 set "DST=%~1\plugins\%MODNAME%"

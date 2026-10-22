@@ -1,9 +1,9 @@
-# Hosihikari.Shim
+# HostingShim
 
 [English](README.md) | [简体中文](README.zh_hans.md)
 
 星光框架的**原生层**，职责名是 **HostingShim**（CLR 寄宿垫片）：把 CLR 托管进 BDS 进程，然后把控制权交给插件管理者
-[`Hosihikari.PluginManager`](https://github.com/HosihikariFramework/PluginManager)。
+[`PluginManager`](https://github.com/HosihikariFramework/PluginManager)。
 
 它只做四件事：定位 hostfxr、以插件管理者的 `runtimeconfig.json` 初始化运行时、载入插件管理者程序集、取托管入口。
 其余一切（发现、依赖、隔离、生命周期）都在托管侧。它不投影载体 API —— 那一侧是 **BindingShim**，
@@ -38,7 +38,7 @@ carriers\levilamina\deploy.bat <服务端根目录>
 powershell -File carriers\levilamina\smoke.ps1 -ServerRoot <服务端根目录>
 ```
 
-它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `Hosihikari.PluginManager` checkout。
+它会先跑一遍托管侧的断言宿主（顺带产出插件包），所以要有并列的 `PluginManager` checkout。
 需要一台已装好 LeviLamina 的服务端；**它不会去杀别人的服务端**，发现已经在跑就直接报错退出。
 
 Endstone 载体另有一条真机路径。它通过 Endstone CLI 启动服务端（CLI 负责把运行时注入原版

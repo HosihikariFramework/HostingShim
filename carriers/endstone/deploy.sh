@@ -20,7 +20,7 @@ shim_only=${2:-}
 here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$1"
 server=$(cd "$1" && pwd)
-managed_root=${HOSIHIKARI_PLUGINMANAGER:-"$here/../../../Hosihikari.PluginManager"}
+managed_root=${HOSIHIKARI_PLUGINMANAGER:-"$here/../../../PluginManager"}
 managed="$managed_root/src/bin/Release/net10.0"
 plugin="$here/build/hosihikari.so"
 nethost="$here/build/nethost/runtimes/linux-x64/native/libnethost.so"

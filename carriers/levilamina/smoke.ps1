@@ -28,7 +28,7 @@ if ($running) {
     throw "a server is already running (PID $($running.Id -join ', ')); stop it first"
 }
 
-$harness = Join-Path $here '..\..\..\Hosihikari.PluginManager\host\Hosihikari.PluginManager.Host.csproj'
+$harness = Join-Path $here '..\..\..\PluginManager\host\Hosihikari.PluginManager.Host.csproj'
 if (-not (Test-Path $harness)) {
     throw "expected the managed core as a sibling checkout: $harness"
 }
