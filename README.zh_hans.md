@@ -80,7 +80,7 @@ bash carriers/endstone/deploy.sh <bedrock_server 所在目录>
 endstone -s <bedrock_server 所在目录>
 ```
 
-`build.sh` 需要 CMake 与 C++20 编译器；SDK 与 nlohmann/json 由 CMake 浅克隆，nethost 从 nuget.org 取。
+`build.sh` 需要 CMake 与 C++23 编译器；SDK 与 nlohmann/json 由 CMake 浅克隆，nethost 从 nuget.org 取。
 `deploy.sh` 铺插件、`libnethost.so` 与插件管理者；插件带 `$ORIGIN`，所以 `libnethost.so` 放在它旁边。
 
 与 LeviLamina 那套的三处结构差异，都是父级的形状决定的：
