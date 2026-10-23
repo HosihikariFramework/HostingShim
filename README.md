@@ -89,7 +89,7 @@ bash carriers/endstone/deploy.sh <folder containing bedrock_server>
 endstone -s <folder containing bedrock_server>
 ```
 
-`build.sh` needs CMake and a C++20 compiler; the SDK and nlohmann/json are shallow-cloned by CMake,
+`build.sh` needs CMake and a C++23 compiler; the SDK and nlohmann/json are shallow-cloned by CMake,
 and nethost is fetched from nuget.org. `deploy.sh` copies the plugin, `libnethost.so` and the
 managed core; the plugin is linked with `$ORIGIN`, so `libnethost.so` sits beside it.
 

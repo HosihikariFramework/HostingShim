@@ -32,6 +32,8 @@ the released lip package; they are manual workflows.
 
 ## Invariants
 
+- All carriers build as C++23. LeviLamina headers already use `std::to_underlying`; keep the CMake
+  and xmake standards aligned.
 - Release archives contain native files only. The managed core comes from the PluginManager lip
   dependency.
 - All four variants keep their labels and dependency range in sync.
