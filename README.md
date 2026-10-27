@@ -124,8 +124,10 @@ relative paths land on the right server root; it needs the .NET 10 runtime insta
 The self-hosted target is BDS 1.21.3: the container itself is BDS-version-agnostic, but the
 capability surface (星光) stops there (ADR-0001).
 
-Self-hosted plugins are precompiled assembly packages; there is no runtime enable/disable
-(ADR-0020). A carrier-only live pass:
+There is no runtime enable/disable under this carrier (ADR-0020): plugins load before the server's
+`main` and stay loaded until the process ends. Source plugins work here too — install the loader
+package (for example `github.com/HosihikariFramework/CSharpLoader`) alongside the carrier, exactly as
+under a parent. A carrier-only live pass:
 
 ```
 bash carriers/selfhosted-linux/smoke.sh <folder containing bedrock_server>

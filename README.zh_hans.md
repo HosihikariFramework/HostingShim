@@ -110,7 +110,8 @@ bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
 
 自持态的目标是 BDS 1.21.3：容器本身与 BDS 版本无关，但能力面（星光）止于那里（ADR-0001）。
 
-自持态插件是预编译程序集包；没有运行期启停（ADR-0020）。只验载体本身的真机路径：
+这个载体没有运行期启停（ADR-0020）：插件在服务端 `main` 之前加载，一直留到进程结束。源码插件在这里同样能跑——
+装上对应的加载器包（例如 `github.com/HosihikariFramework/CSharpLoader`），与父级态下的做法一样。只验载体本身的真机路径：
 
 ```
 bash carriers/selfhosted-linux/smoke.sh <bedrock_server 所在目录>
