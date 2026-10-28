@@ -1,7 +1,7 @@
 name: verify-providers
 
-# 发布后的 Loader 安装验收：在 Linux 与 Windows 上用真实 lip 装 Shim、Core 与三个 Loader，
-# 检查目录、清单与共享层排除。运行期行为由各 Loader 的宿主断言覆盖。
+# 发布后的 Loader 安装验收：在 Linux 与 Windows 上下载真实 Release 附件装 Shim、Core 与三个
+# Loader，检查目录、清单与共享层排除。运行期行为由各 Loader 的宿主断言覆盖。
 on:
   workflow_dispatch:
     inputs:
@@ -30,26 +30,26 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - name: 安装 lip
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/lip"
-          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
-            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
-          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
-          chmod +x "$RUNNER_TEMP/lip/lip"
-          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
-
       - name: 安装载体与 Loader
+        env:
+          CORE: ${{ inputs.core_version }}
+          SHIM: ${{ inputs.shim_version }}
+          CSHARP: ${{ inputs.csharp_version }}
+          FSHARP: ${{ inputs.fsharp_version }}
+          RPC: ${{ inputs.rpc_version }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/install"
-          cd "$RUNNER_TEMP/install"
-          lip install "github.com/HosihikariFramework/PluginManager@${{ inputs.core_version }}"
-          lip install "github.com/HosihikariFramework/HostingShim#endstone@${{ inputs.shim_version }}"
-          lip install "github.com/HosihikariFramework/CSharpLoader@${{ inputs.csharp_version }}"
-          lip install "github.com/HosihikariFramework/FSharpLoader@${{ inputs.fsharp_version }}"
-          lip install "github.com/HosihikariFramework/RpcLoader@${{ inputs.rpc_version }}"
+          install="$RUNNER_TEMP/install"
+          mkdir -p "$install"
+          base=https://github.com/HosihikariFramework
+          curl -fsSL "$base/PluginManager/releases/download/v$CORE/hosihikari-core-$CORE.zip" -o "$RUNNER_TEMP/core.zip"
+          curl -fsSL "$base/HostingShim/releases/download/v$SHIM/hosihikari-endstone-linux-x64.zip" -o "$RUNNER_TEMP/shim.zip"
+          curl -fsSL "$base/CSharpLoader/releases/download/v$CSHARP/hosihikari-csharp-$CSHARP.zip" -o "$RUNNER_TEMP/csharp.zip"
+          curl -fsSL "$base/FSharpLoader/releases/download/v$FSHARP/hosihikari-fsharp-$FSHARP.zip" -o "$RUNNER_TEMP/fsharp.zip"
+          curl -fsSL "$base/RpcLoader/releases/download/v$RPC/hosihikari-rpc-$RPC.zip" -o "$RUNNER_TEMP/rpc.zip"
+          for zip in core shim csharp fsharp rpc; do
+            unzip -q "$RUNNER_TEMP/$zip.zip" -d "$install"
+          done
 
       - name: 检查落盘
         run: |
@@ -72,27 +72,31 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - name: 安装 lip
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Invoke-WebRequest -Uri 'https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-win-x64.zip' -OutFile "$env:RUNNER_TEMP\lip.zip"
-          Expand-Archive -Path "$env:RUNNER_TEMP\lip.zip" -DestinationPath "$env:RUNNER_TEMP\lip"
-          $exe = Get-ChildItem -Path "$env:RUNNER_TEMP\lip" -Filter lip.exe -Recurse | Select-Object -First 1
-          if (-not $exe) { throw 'lip.exe not found' }
-          $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: 安装载体与 Loader
         shell: pwsh
+        env:
+          CORE: ${{ inputs.core_version }}
+          SHIM: ${{ inputs.shim_version }}
+          CSHARP: ${{ inputs.csharp_version }}
+          FSHARP: ${{ inputs.fsharp_version }}
+          RPC: ${{ inputs.rpc_version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\install" | Out-Null
-          Set-Location "$env:RUNNER_TEMP\install"
-          lip install "github.com/HosihikariFramework/PluginManager@${{ inputs.core_version }}"
-          lip install "github.com/HosihikariFramework/HostingShim#endstone@${{ inputs.shim_version }}"
-          lip install "github.com/HosihikariFramework/CSharpLoader@${{ inputs.csharp_version }}"
-          lip install "github.com/HosihikariFramework/FSharpLoader@${{ inputs.fsharp_version }}"
-          lip install "github.com/HosihikariFramework/RpcLoader@${{ inputs.rpc_version }}"
+          $install = "$env:RUNNER_TEMP\install"
+          New-Item -ItemType Directory -Force -Path $install | Out-Null
+          $base = 'https://github.com/HosihikariFramework'
+          $assets = [ordered]@{
+            core   = "$base/PluginManager/releases/download/v$env:CORE/hosihikari-core-$env:CORE.zip"
+            shim   = "$base/HostingShim/releases/download/v$env:SHIM/hosihikari-endstone-windows-x64.zip"
+            csharp = "$base/CSharpLoader/releases/download/v$env:CSHARP/hosihikari-csharp-$env:CSHARP.zip"
+            fsharp = "$base/FSharpLoader/releases/download/v$env:FSHARP/hosihikari-fsharp-$env:FSHARP.zip"
+            rpc    = "$base/RpcLoader/releases/download/v$env:RPC/hosihikari-rpc-$env:RPC.zip"
+          }
+          foreach ($name in $assets.Keys) {
+            $path = Join-Path $env:RUNNER_TEMP "$name.zip"
+            Invoke-WebRequest -Uri $assets[$name] -OutFile $path
+            Expand-Archive -Path $path -DestinationPath $install -Force
+          }
 
       - name: 检查落盘
         shell: pwsh

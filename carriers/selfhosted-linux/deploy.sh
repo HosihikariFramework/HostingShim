@@ -5,7 +5,7 @@
 #
 # The managed core is taken from a sibling checkout of Hosihikari.PluginManager,
 # or from HOSIHIKARI_PLUGINMANAGER. Release packaging passes shim-only: the core
-# then comes from its own lip package.
+# then comes from its own release archive.
 set -euo pipefail
 
 if [ $# -lt 1 ]; then

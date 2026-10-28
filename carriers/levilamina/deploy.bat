@@ -5,7 +5,7 @@ REM   deploy.bat <server root> [shim-only]
 REM
 REM The managed core is taken from a sibling checkout of Hosihikari.PluginManager,
 REM or from HOSIHIKARI_PLUGINMANAGER. Release packaging passes shim-only: the core
-REM then comes from its own lip package. Keep this file ASCII only.
+REM then comes from its own release archive. Keep this file ASCII only.
 setlocal
 if "%~1"=="" (
     echo usage: deploy.bat ^<server root^>

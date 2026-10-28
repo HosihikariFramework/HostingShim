@@ -37,7 +37,7 @@ body:
         - Endstone carrier
         - Self-hosted Linux carrier
         - Native hosting and runtime loading
-        - Packaging and lip deployment
+        - Packaging and release archives
         - Documentation
         - Other
     validations:
