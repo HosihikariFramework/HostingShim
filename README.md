@@ -170,14 +170,15 @@ delivery/enable/disable/unload/reload pass remains local via `smoke.ps1`.
 
 ## Distribution
 
-`tooth.json` sits at the **repository root**: lip resolves the `tooth` field as a whole Git
-repository, so anything below the root is invisible to it. One package, four variants:
+`manifest.json` sits at the **repository root** and uses lip package format version 4. The root
+document routes each variant to one release archive; the archive carries its own concrete
+`manifest.json`. One package, four variants:
 
 | Variant | What it installs |
 |---|---|
 | default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the native shim into `plugins/hosihikari/` |
 | `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/`; the Core package adds the managed files |
-| `#endstone` | The Endstone carrier on Windows and Linux: Windows places the DLL and `nethost.dll` next to `bedrock_server.exe`; Linux places the `.so` and `libnethost.so` into `plugins/`. `platform` selects the archive |
+| `#endstone` | The Endstone carrier on Windows and Linux: Windows places the DLL and `nethost.dll` next to `bedrock_server.exe`; Linux places the `.so` and `libnethost.so` into `plugins/`. `platform` and `rid` select the archive |
 
 ```
 lip install github.com/HosihikariFramework/HostingShim                # self-hosted Linux
@@ -195,9 +196,8 @@ be installed**. Tagging `v*` runs the release workflow that builds all four arch
 them to one release. The self-hosted post-install script marks `hosihikari-server` executable; if
 scripts are skipped, run `chmod +x hosihikari-server` yourself.
 
-lip resolves versions through the **Go module proxy** (`proxy.golang.org`), not git tags directly,
-so a freshly pushed tag takes a while to become installable: until the proxy indexes it,
-`lip install` reports "Failed to find the latest version". The variants above are installed this way.
+lip resolves versions from the repository's `v*` tags directly, so a tag becomes installable as
+soon as its release archives exist. Package format 4 requires a lip release with format 4 support.
 
 ## Not done yet
 

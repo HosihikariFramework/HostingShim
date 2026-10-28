@@ -10,7 +10,7 @@ control to the managed core, and provide the LeviLamina, Endstone, and self-host
 - `carriers/endstone/` — CMake carrier for Endstone on Windows and Linux.
 - `carriers/selfhosted-linux/` — CMake carrier and launcher for the self-hosted Linux server.
 - `verify/` — host-glue, host DLL, and injector checks for the native to managed hop.
-- `tooth.json` — lip package with four variants.
+- `manifest.json` — lip package with four artifacts (format version 4).
 
 ## Build and verify
 

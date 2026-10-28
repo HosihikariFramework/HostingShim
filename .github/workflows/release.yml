@@ -1,6 +1,6 @@
 name: release
 
-# 发布是刻意的动作：这个工作流只在打标签时跑。标签也决定 tooth.json 里的 {{version}}，
+# 发布是刻意的动作：这个工作流只在打标签时跑。标签也决定 manifest.json 里的 {{version}}，
 # 所以两者必须是同一个名字（v0.1.0 ↔ "version": "0.1.0"）。
 on:
   push:
@@ -18,16 +18,16 @@ jobs:
         with:
           path: Shim
 
-      # 标签、tooth 与两个载体报出的版本必须是同一个；漂了就在构建前停下。
+      # 标签、manifest 与两个载体报出的版本必须是同一个；漂了就在构建前停下。
       - name: 版本一致
         shell: pwsh
         run: |
           $tag = '${{ github.ref_name }}' -replace '^v', ''
-          $manifest = Get-Content Shim/tooth.json -Raw | ConvertFrom-Json
-          if ($manifest.version -ne $tag) { throw "tooth.json 是 $($manifest.version)，标签是 $tag" }
-          foreach ($variant in $manifest.variants) {
-            if ($variant.label -match '[^a-z0-9_]') {
-              throw "变体标签只能用小写字母、数字与下划线：$($variant.label)"
+          $manifest = Get-Content Shim/manifest.json -Raw | ConvertFrom-Json
+          if ($manifest.version -ne $tag) { throw "manifest.json 是 $($manifest.version)，标签是 $tag" }
+          foreach ($artifact in $manifest.artifacts) {
+            if ($artifact.variant -and $artifact.variant -notmatch '^[a-z0-9_]+(/[a-z0-9_]+)?$') {
+              throw "变体标签只能用小写字母、数字、下划线与一个斜杠：$($artifact.variant)"
             }
           }
 
@@ -64,7 +64,7 @@ jobs:
         working-directory: Shim
         run: carriers\endstone\build.bat
 
-      # 用各自的 deploy 脚本铺到空目录：铺出来的就是 tooth.json 里 placement 期望的形状，
+      # 用各自的 deploy 脚本铺到空目录：铺出来的就是 manifest.json 里 placements 期望的形状，
       # 发布物与本地部署因此不会悄悄分叉。
       - name: 装配两个附件
         shell: pwsh
@@ -77,10 +77,33 @@ jobs:
           & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina" shim-only
           & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only
 
+          $tag = '${{ github.ref_name }}' -replace '^v', ''
+          $uuid = '0c6b977a-64ad-441f-9a29-c7f4b196882f'
+          $pluginManager = [ordered]@{ version = '>=1.1.0 <1.2.0'; refs = @('github.com/HosihikariFramework/PluginManager') }
+          $levilamina = [ordered]@{ version = '>=26.51.0 <26.52.0'; refs = @('github.com/LiteLDev/LeviLamina') }
+
+          function Write-LipManifest([string]$Path, [array]$Placements, [array]$InstallDependencies) {
+            [ordered]@{
+              formatVersion = 4
+              formatUuid = $uuid
+              name = 'HostingShim'
+              version = $tag
+              type = 'files'
+              platform = 'server'
+              rid = 'win-x64'
+              placements = $Placements
+              installDependencies = $InstallDependencies
+            } | ConvertTo-Json -Depth 8 | Set-Content $Path -Encoding utf8NoBOM
+          }
+
+          Write-LipManifest (Join-Path "$root\stage-levilamina\plugins" 'manifest.json') `
+            @([ordered]@{ src = 'hosihikari/'; dest = 'plugins/hosihikari/' }) `
+            @($pluginManager, $levilamina)
+
           # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
           # 这样 zip 顶层不会多出一层 ./ 或目录名。
           & tar -a -c -f "$out\hosihikari-levilamina-windows-x64.zip" `
-                -C "$root\stage-levilamina\plugins" hosihikari
+                -C "$root\stage-levilamina\plugins" hosihikari manifest.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the LeviLamina variant failed' }
 
           # Endstone 那份只带原生插件与 nethost；托管核心由独立 Core 包落盘。
@@ -89,8 +112,15 @@ jobs:
           Copy-Item "$root\stage-endstone\plugins\hosihikari.dll" $zipRoot
           Copy-Item "$root\stage-endstone\nethost.dll" $zipRoot
 
+          Write-LipManifest (Join-Path $zipRoot 'manifest.json') `
+            @(
+              [ordered]@{ src = 'hosihikari.dll'; dest = 'plugins/hosihikari.dll' },
+              [ordered]@{ src = 'nethost.dll'; dest = 'nethost.dll' }
+            ) `
+            @($pluginManager)
+
           & tar -a -c -f "$out\hosihikari-endstone-windows-x64.zip" `
-                -C $zipRoot hosihikari.dll nethost.dll
+                -C $zipRoot hosihikari.dll nethost.dll manifest.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the Endstone variant failed' }
 
           Get-ChildItem $out | Select-Object Name, Length
@@ -117,7 +147,7 @@ jobs:
       - name: 构建 Endstone 载体
         run: Shim/carriers/endstone/build.sh
 
-      # 与 Windows 一样用 deploy 脚本铺出 tooth placement 期望的形状。
+      # 与 Windows 一样用 deploy 脚本铺出 manifest placement 期望的形状。
       - name: 装配附件
         shell: bash
         run: |
@@ -129,6 +159,27 @@ jobs:
           mkdir -p "$zip_root" "$root/out"
           cp "$root/stage-endstone-linux/plugins/hosihikari.so" "$zip_root/"
           cp "$root/stage-endstone-linux/plugins/libnethost.so" "$zip_root/"
+
+          tag="${GITHUB_REF_NAME#v}"
+          cat > "$zip_root/manifest.json" <<EOF
+          {
+            "formatVersion": 4,
+            "formatUuid": "0c6b977a-64ad-441f-9a29-c7f4b196882f",
+            "name": "HostingShim",
+            "version": "$tag",
+            "type": "files",
+            "platform": "server",
+            "rid": "linux-x64",
+            "placements": [
+              { "src": "hosihikari.so", "dest": "plugins/hosihikari.so" },
+              { "src": "libnethost.so", "dest": "plugins/libnethost.so" }
+            ],
+            "installDependencies": [
+              { "version": ">=1.1.0 <1.2.0", "refs": ["github.com/HosihikariFramework/PluginManager"] }
+            ]
+          }
+          EOF
+
           (cd "$zip_root" && zip -qr "$root/out/hosihikari-endstone-linux-x64.zip" .)
 
           ls -l "$root/out"
@@ -147,6 +198,28 @@ jobs:
           mkdir -p "$zip_root"
           cp "$root/stage-selfhosted-linux/hosihikari-server" "$zip_root/"
           cp -r "$root/stage-selfhosted-linux/plugins/hosihikari" "$zip_root/"
+
+          tag="${GITHUB_REF_NAME#v}"
+          cat > "$zip_root/manifest.json" <<EOF
+          {
+            "formatVersion": 4,
+            "formatUuid": "0c6b977a-64ad-441f-9a29-c7f4b196882f",
+            "name": "HostingShim",
+            "version": "$tag",
+            "type": "files",
+            "platform": "server",
+            "rid": "linux-x64",
+            "placements": [
+              { "src": "hosihikari-server", "dest": "hosihikari-server" },
+              { "src": "hosihikari/", "dest": "plugins/hosihikari/" }
+            ],
+            "scripts": { "postInstall": ["chmod +x hosihikari-server"] },
+            "installDependencies": [
+              { "version": ">=1.1.0 <1.2.0", "refs": ["github.com/HosihikariFramework/PluginManager"] }
+            ]
+          }
+          EOF
+
           (cd "$zip_root" && zip -qr "$root/out/hosihikari-selfhosted-linux-x64.zip" .)
 
           ls -l "$root/out"

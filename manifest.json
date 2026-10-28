@@ -1,0 +1,40 @@
+{
+  "$schema": "https://github.com/LiteLDev/lip/raw/main/schemas/manifest.v4.schema.json",
+  "formatVersion": 4,
+  "formatUuid": "0c6b977a-64ad-441f-9a29-c7f4b196882f",
+  "name": "HostingShim",
+  "version": "1.1.0",
+  "artifacts": [
+    {
+      "platform": "server",
+      "rid": "linux-x64",
+      "refs": [
+        "https://github.com/HosihikariFramework/HostingShim/releases/download/v{{version}}/hosihikari-selfhosted-linux-x64.zip"
+      ]
+    },
+    {
+      "variant": "levilamina",
+      "platform": "server",
+      "rid": "win-x64",
+      "refs": [
+        "https://github.com/HosihikariFramework/HostingShim/releases/download/v{{version}}/hosihikari-levilamina-windows-x64.zip"
+      ]
+    },
+    {
+      "variant": "endstone",
+      "platform": "server",
+      "rid": "win-x64",
+      "refs": [
+        "https://github.com/HosihikariFramework/HostingShim/releases/download/v{{version}}/hosihikari-endstone-windows-x64.zip"
+      ]
+    },
+    {
+      "variant": "endstone",
+      "platform": "server",
+      "rid": "linux-x64",
+      "refs": [
+        "https://github.com/HosihikariFramework/HostingShim/releases/download/v{{version}}/hosihikari-endstone-linux-x64.zip"
+      ]
+    }
+  ]
+}

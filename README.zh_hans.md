@@ -151,14 +151,14 @@ cmake --build build --config Release
 
 ## 分发
 
-`tooth.json` 在**仓根**：lip 把 `tooth` 字段整个当成一个 Git 仓库来解析，仓根以下的东西它看不见。
-一份包，四个变体：
+`manifest.json` 在**仓根**，使用 lip 包格式 v4。根文档把每个变体路由到一个发布归档；归档里带
+自己的 concrete `manifest.json`。一份包，四个变体：
 
 | 变体 | 装什么 |
 |---|---|
 | 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，原生垫片进 `plugins/hosihikari/` |
 | `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/`；托管文件由 Core 包补齐 |
-| `#endstone` | Endstone 载体，Windows 与 Linux 共用：Windows 把 dll 与 `nethost.dll` 放到 `bedrock_server.exe` 旁边；Linux 把 `.so` 与 `libnethost.so` 放进 `plugins/`。由 `platform` 选择附件 |
+| `#endstone` | Endstone 载体，Windows 与 Linux 共用：Windows 把 dll 与 `nethost.dll` 放到 `bedrock_server.exe` 旁边；Linux 把 `.so` 与 `libnethost.so` 放进 `plugins/`。由 `platform` 与 `rid` 选择附件 |
 
 ```
 lip install github.com/HosihikariFramework/HostingShim                # 自持态 Linux
@@ -171,12 +171,11 @@ lip install github.com/HosihikariFramework/HostingShim#endstone
 `plugins/hosihikari/`；原生垫片启动前会检查入口契约版本。发布附件只含原生文件；
 `deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级插件管理器检出复制一份；版本来自 Git tag，
 所以**要先有标签与对应的 release 才装得了**。
-打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 post_install 脚本会给
+打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 postInstall 脚本会给
 `hosihikari-server` 加可执行位；跳过脚本时请自己 `chmod +x hosihikari-server`。
 
-lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是直接看 git tag —— 所以刚推上去的
-标签要等代理索引到才能装，在那之前 `lip install` 会报 "Failed to find the latest version"。
-上面的变体就是这样装出来的。
+lip 直接从仓库的 `v*` 标签解析版本：对应的发布归档就绪后，标签即可安装。
+包格式 v4 需要支持格式 4 的 lip 发布。
 
 ## 还没做的
 
