@@ -70,40 +70,61 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $root = $env:GITHUB_WORKSPACE
           $out  = Join-Path $root 'out'
+          $version = '${{ github.ref_name }}' -replace '^v', ''
           New-Item -ItemType Directory -Force $out | Out-Null
 
           & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina" shim-only
           & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only
           & "$root\Shim\carriers\selfhosted-windows\deploy.ps1" -ServerRoot "$root\stage-selfhosted-windows" -ShimOnly
 
+          # 每个附件根部的 sei.json 是分发元数据；selectors 里的 carrier 指向同名的
+          # bundle sei，rid 区分平台。安装时根级 sei.json 被跳过。
+          function Write-Sei([string]$dir, [string]$carrier, [string]$rid) {
+            [ordered]@{
+              schemaVersion = 1
+              name          = 'hosihikari-hosting'
+              version       = $version
+              dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[1.2.0,2.0.0)' })
+              selectors     = [ordered]@{ carrier = $carrier; rid = $rid }
+              layout        = 'root'
+            } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $dir 'sei.json') -Encoding utf8NoBOM
+          }
+
+          Write-Sei "$root\stage-levilamina" 'hosihikari-hosting-levilamina' 'win-x64'
+          Write-Sei "$root\stage-endstone" 'hosihikari-hosting-endstone' 'win-x64'
+          Write-Sei "$root\stage-selfhosted-windows" 'hosihikari-hosting-selfhosted' 'win-x64'
+
           # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
           # 这样 zip 顶层不会多出一层 ./ 或目录名。
           & tar -a -c -f "$out\hosihikari-levilamina-windows-x64.zip" `
-                -C "$root\stage-levilamina" plugins
+                -C "$root\stage-levilamina" plugins sei.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the LeviLamina variant failed' }
 
           # Endstone 那份只带原生插件与 nethost；托管核心由独立 Core 附件落盘。
           & tar -a -c -f "$out\hosihikari-endstone-windows-x64.zip" `
-                -C "$root\stage-endstone" plugins/hosihikari.dll nethost.dll
+                -C "$root\stage-endstone" plugins/hosihikari.dll nethost.dll sei.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the Endstone variant failed' }
 
           # 自持态那份是启动器加垫片；托管核心同样由 Core 附件落盘。
           & tar -a -c -f "$out\hosihikari-selfhosted-windows-x64.zip" `
-                -C "$root\stage-selfhosted-windows" hosihikari-server.exe plugins/hosihikari
+                -C "$root\stage-selfhosted-windows" hosihikari-server.exe plugins/hosihikari sei.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the self-hosted Windows variant failed' }
 
           $expected = @{
             'hosihikari-levilamina-windows-x64.zip' = @(
               'plugins/hosihikari/hosihikari.dll',
-              'plugins/hosihikari/manifest.json'
+              'plugins/hosihikari/manifest.json',
+              'sei.json'
             )
             'hosihikari-endstone-windows-x64.zip' = @(
               'plugins/hosihikari.dll',
-              'nethost.dll'
+              'nethost.dll',
+              'sei.json'
             )
             'hosihikari-selfhosted-windows-x64.zip' = @(
               'hosihikari-server.exe',
-              'plugins/hosihikari/hosihikari.dll'
+              'plugins/hosihikari/hosihikari.dll',
+              'sei.json'
             )
           }
           foreach ($name in $expected.Keys) {
@@ -143,13 +164,28 @@ jobs:
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE"
+          version="${GITHUB_REF_NAME#v}"
           "$root/Shim/carriers/endstone/deploy.sh" "$root/stage-endstone-linux" shim-only
 
+          sei() {
+            jq -n --arg version "$version" --arg carrier "$1" --arg rid "$2" '{
+              schemaVersion: 1,
+              name: "hosihikari-hosting",
+              version: $version,
+              dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+              selectors: { carrier: $carrier, rid: $rid },
+              layout: "root"
+            }' > "$3"
+          }
+
+          sei hosihikari-hosting-endstone linux-x64 "$root/stage-endstone-linux/sei.json"
+
           mkdir -p "$root/out"
-          (cd "$root/stage-endstone-linux" && zip -qr "$root/out/hosihikari-endstone-linux-x64.zip" plugins/hosihikari.so plugins/libnethost.so)
+          (cd "$root/stage-endstone-linux" && zip -qr "$root/out/hosihikari-endstone-linux-x64.zip" plugins/hosihikari.so plugins/libnethost.so sei.json)
 
           unzip -l "$root/out/hosihikari-endstone-linux-x64.zip" | grep -q 'plugins/hosihikari.so'
           unzip -l "$root/out/hosihikari-endstone-linux-x64.zip" | grep -q 'plugins/libnethost.so'
+          unzip -l "$root/out/hosihikari-endstone-linux-x64.zip" | grep -q 'sei.json'
 
           ls -l "$root/out"
 
@@ -161,12 +197,25 @@ jobs:
         run: |
           set -euo pipefail
           root="$GITHUB_WORKSPACE"
+          version="${GITHUB_REF_NAME#v}"
           "$root/Shim/carriers/selfhosted-linux/deploy.sh" "$root/stage-selfhosted-linux" shim-only
 
+          # 启动器要 0755；modes 只写在 zip 根的 sei.json 里，索引条目不携带。
+          jq -n --arg version "$version" '{
+            schemaVersion: 1,
+            name: "hosihikari-hosting",
+            version: $version,
+            dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+            selectors: { carrier: "hosihikari-hosting-selfhosted", rid: "linux-x64" },
+            layout: "root",
+            modes: { "hosihikari-server": "0755" }
+          }' > "$root/stage-selfhosted-linux/sei.json"
+
           mkdir -p "$root/out"
-          (cd "$root/stage-selfhosted-linux" && zip -qr "$root/out/hosihikari-selfhosted-linux-x64.zip" hosihikari-server plugins/hosihikari)
+          (cd "$root/stage-selfhosted-linux" && zip -qr "$root/out/hosihikari-selfhosted-linux-x64.zip" hosihikari-server plugins/hosihikari sei.json)
 
           unzip -l "$root/out/hosihikari-selfhosted-linux-x64.zip" | grep -q 'hosihikari-server'
+          unzip -l "$root/out/hosihikari-selfhosted-linux-x64.zip" | grep -q 'sei.json'
           unzip -l "$root/out/hosihikari-selfhosted-linux-x64.zip" | grep -q 'plugins/hosihikari/libhosihikari.so'
 
           ls -l "$root/out"
@@ -198,3 +247,55 @@ jobs:
           gh release create "${{ github.ref_name }}" out/*.zip \
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" --generate-notes
+
+      # 发布后把这一版作为 sei 提交给官方索引：一个版本、五个附件，selectors 里的
+      # carrier 指向同名的 bundle sei。跨仓提交用 SEI_SUBMISSION_TOKEN；没配就跳过。
+      - name: 提交 SeiIndex
+        env:
+          GH_TOKEN: ${{ secrets.SEI_SUBMISSION_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+          INDEX_REPO: Hosihikari/SeiIndex
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::SEI_SUBMISSION_TOKEN 未配置，跳过 SeiIndex 提交"
+            exit 0
+          fi
+
+          version="${VERSION#v}"
+          title="[sei] hosihikari-hosting $version"
+          existing=$(gh issue list --repo "$INDEX_REPO" --state all --limit 200 \
+            --json title --jq '.[].title' | grep -Fxc "$title" || true)
+          if [ "$existing" != "0" ]; then
+            echo "::notice::SeiIndex already has an issue titled '$title'"
+            exit 0
+          fi
+
+          artifact() {
+            local asset="$1" carrier="$2" rid="$3"
+            local file="out/hosihikari-$asset.zip"
+            local sha size
+            sha=$(sha256sum "$file" | cut -d' ' -f1)
+            size=$(wc -c < "$file")
+            jq -n --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/v$version/hosihikari-$asset.zip" \
+                  --arg sha "$sha" --argjson size "$size" \
+                  --arg carrier "$carrier" --arg rid "$rid" \
+                  '{ selectors: { carrier: $carrier, rid: $rid }, layout: "root",
+                     source: { url: $url, sha256: $sha, size: $size } }'
+          }
+
+          artifacts=$(jq -s '.' \
+            <(artifact levilamina-windows-x64 hosihikari-hosting-levilamina win-x64) \
+            <(artifact endstone-windows-x64 hosihikari-hosting-endstone win-x64) \
+            <(artifact endstone-linux-x64 hosihikari-hosting-endstone linux-x64) \
+            <(artifact selfhosted-linux-x64 hosihikari-hosting-selfhosted linux-x64) \
+            <(artifact selfhosted-windows-x64 hosihikari-hosting-selfhosted win-x64))
+
+          entry=$(jq -n --arg version "$version" --argjson artifacts "$artifacts" '{
+            version: $version,
+            dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+            artifacts: $artifacts
+          }')
+
+          body=$(printf '### Sei name\n\nhosihikari-hosting\n\n### Version entry (JSON)\n\n```json\n%s\n```\n' "$entry")
+          gh issue create --repo "$INDEX_REPO" --title "$title" --body "$body"

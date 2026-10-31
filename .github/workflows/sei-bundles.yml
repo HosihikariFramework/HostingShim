@@ -1,0 +1,87 @@
+name: sei-bundles
+
+# 载体 bundle：每个包只带一份 sei.json，依赖 hosihikari-hosting。它的名字同时是
+# 附件 selectors 里的 carrier 值 —— 用户只声明一个 bundle 就能选中对应载体。
+# 版本不可变，发布后只追加。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Bundle version (immutable once published)'
+        required: true
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 生成 bundle 包
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          for carrier in levilamina endstone selfhosted; do
+            name="hosihikari-hosting-$carrier"
+            work=$(mktemp -d)
+            jq -n --arg name "$name" --arg version "$VERSION" '{
+              schemaVersion: 1,
+              name: $name,
+              version: $version,
+              dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
+              layout: "root"
+            }' > "$work/sei.json"
+            (cd "$work" && zip -q "$GITHUB_WORKSPACE/out/$name-$VERSION.zip" sei.json)
+            rm -rf "$work"
+          done
+          unzip -l "out/hosihikari-hosting-levilamina-$VERSION.zip"
+
+      - name: 发 release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          gh release create "sei-bundles-v$VERSION" out/*.zip \
+            --repo "${{ github.repository }}" \
+            --title "sei bundles v$VERSION" \
+            --notes "Carrier bundle seis for hosihikari-hosting. One sei per carrier."
+
+      - name: 提交 SeiIndex
+        env:
+          GH_TOKEN: ${{ secrets.SEI_SUBMISSION_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          INDEX_REPO: Hosihikari/SeiIndex
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::notice::SEI_SUBMISSION_TOKEN 未配置，跳过 SeiIndex 提交"
+            exit 0
+          fi
+
+          for carrier in levilamina endstone selfhosted; do
+            name="hosihikari-hosting-$carrier"
+            title="[sei] $name $VERSION"
+            existing=$(gh issue list --repo "$INDEX_REPO" --state all --limit 200 \
+              --json title --jq '.[].title' | grep -Fxc "$title" || true)
+            if [ "$existing" != "0" ]; then
+              echo "::notice::SeiIndex already has an issue titled '$title'"
+              continue
+            fi
+
+            asset="out/$name-$VERSION.zip"
+            sha=$(sha256sum "$asset" | cut -d' ' -f1)
+            size=$(wc -c < "$asset")
+            entry=$(jq -n --arg name "$name" --arg version "$VERSION" --arg url \
+              "https://github.com/$GITHUB_REPOSITORY/releases/download/sei-bundles-v$VERSION/$name-$VERSION.zip" \
+              --arg sha "$sha" --argjson size "$size" '{
+                version: $version,
+                dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
+                artifacts: [{ layout: "root", source: { url: $url, sha256: $sha, size: $size } }]
+              }')
+            body=$(printf '### Sei name\n\n%s\n\n### Version entry (JSON)\n\n```json\n%s\n```\n' "$name" "$entry")
+            gh issue create --repo "$INDEX_REPO" --title "$title" --body "$body"
+          done
