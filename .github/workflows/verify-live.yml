@@ -1,7 +1,6 @@
 name: verify-live
 
-# 真机冒烟：下载 BDS、装 Endstone 与 lip 发布的载体，起服、列插件、停服。
-# 与 verify-lip 分开：那条只验落盘，这条验进程里真的跑起来。
+# 真机冒烟：下载 BDS、装 Endstone 与 Release 附件里的载体，起服、列插件、停服。
 on:
   workflow_dispatch:
     inputs:
@@ -18,11 +17,15 @@ on:
         required: true
         default: '1.21.3.01'
       source:
-        description: 'Linux: build the carrier from this checkout instead of installing the latest lip release'
+        description: 'Linux: build the carrier from this checkout instead of using the release asset'
         type: boolean
         default: false
       version:
-        description: 'Optional package version, e.g. 0.3.2'
+        description: 'Shim version (defaults to the latest release), e.g. 1.1.0'
+        required: false
+        default: ''
+      core_version:
+        description: 'Core version (defaults to the latest release), e.g. 1.1.0'
         required: false
         default: ''
       selfhosted:
@@ -66,22 +69,27 @@ jobs:
           "ENDSTONE_EXE=$env:RUNNER_TEMP\endstone-venv\Scripts\endstone.exe" `
             | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: lip
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-win-x64.zip" `
-            -OutFile "$env:RUNNER_TEMP\lip.zip"
-          Expand-Archive -Path "$env:RUNNER_TEMP\lip.zip" -DestinationPath "$env:RUNNER_TEMP\lip" -Force
-          $exe = Get-ChildItem "$env:RUNNER_TEMP\lip" -Recurse -Filter lip.exe | Select-Object -First 1
-          $exe.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: 安装载体
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIM_VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
         run: |
+          $ErrorActionPreference = 'Stop'
+          $shim = $env:SHIM_VERSION
+          if (-not $shim) {
+            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+          }
+          $core = $env:CORE_VERSION
+          if (-not $core) {
+            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+          }
           Set-Location $env:SERVER
-          $spec = 'github.com/HosihikariFramework/HostingShim#endstone'
-          if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
-          lip install $spec
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-endstone-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\shim.zip" -DestinationPath $env:SERVER -Force
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath $env:SERVER -Force
           if (-not (Test-Path 'plugins/hosihikari.dll')) { throw 'the carrier dll is missing' }
           if (-not (Test-Path 'nethost.dll')) { throw 'nethost.dll is missing' }
           if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
@@ -124,11 +132,26 @@ jobs:
 
       - name: 安装载体
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIM_VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
         run: |
+          $ErrorActionPreference = 'Stop'
+          $shim = $env:SHIM_VERSION
+          if (-not $shim) {
+            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+          }
+          $core = $env:CORE_VERSION
+          if (-not $core) {
+            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+          }
           Set-Location $env:SERVER
-          $spec = 'github.com/HosihikariFramework/HostingShim#levilamina'
-          if ('${{ inputs.version }}' -ne '') { $spec = "$spec@${{ inputs.version }}" }
-          lip install $spec
+          lip install github.com/LiteLDev/LeviLamina@26.51.9
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-levilamina-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\shim.zip" -DestinationPath $env:SERVER -Force
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath $env:SERVER -Force
           if (-not (Test-Path 'bedrock_server_mod.exe')) { throw 'LeviLamina did not produce bedrock_server_mod.exe' }
           if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
 
@@ -213,25 +236,29 @@ jobs:
         if: ${{ inputs.source }}
         run: Shim/carriers/endstone/deploy.sh "$SERVER"
 
-      - name: lip
-        if: ${{ !inputs.source }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/lip"
-          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
-            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
-          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
-          chmod +x "$RUNNER_TEMP/lip/lip"
-          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
-
       - name: 安装载体
         if: ${{ !inputs.source }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIM_VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
         run: |
           set -euo pipefail
+          shim="$SHIM_VERSION"
+          if [ -z "$shim" ]; then
+            shim=$(gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName)
+            shim=${shim#v}
+          fi
+          core="$CORE_VERSION"
+          if [ -z "$core" ]; then
+            core=$(gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName)
+            core=${core#v}
+          fi
           cd "$SERVER"
-          spec="github.com/HosihikariFramework/HostingShim#endstone"
-          if [ -n "${{ inputs.version }}" ]; then spec="$spec@${{ inputs.version }}"; fi
-          lip install "$spec"
+          curl -fsSL "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-endstone-linux-x64.zip" -o "$RUNNER_TEMP/shim.zip"
+          curl -fsSL "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -o "$RUNNER_TEMP/core.zip"
+          unzip -qo "$RUNNER_TEMP/shim.zip" -d "$SERVER"
+          unzip -qo "$RUNNER_TEMP/core.zip" -d "$SERVER"
           test -f plugins/hosihikari.so
           test -f plugins/libnethost.so
           test -f plugins/hosihikari/Hosihikari.PluginManager.dll
@@ -304,25 +331,30 @@ jobs:
         if: ${{ inputs.source }}
         run: Shim/carriers/selfhosted-linux/deploy.sh "$SERVER"
 
-      - name: lip
-        if: ${{ !inputs.source }}
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/lip"
-          curl -fsSL -o "$RUNNER_TEMP/lip.tar.xz" \
-            https://github.com/LiteLDev/lip/releases/download/v0.34.9/lip-0.34.9-linux-x64.tar.xz
-          tar -xJf "$RUNNER_TEMP/lip.tar.xz" -C "$RUNNER_TEMP/lip"
-          chmod +x "$RUNNER_TEMP/lip/lip"
-          echo "$RUNNER_TEMP/lip" >> "$GITHUB_PATH"
-
       - name: 安装载体
         if: ${{ !inputs.source }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIM_VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
         run: |
           set -euo pipefail
+          shim="$SHIM_VERSION"
+          if [ -z "$shim" ]; then
+            shim=$(gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName)
+            shim=${shim#v}
+          fi
+          core="$CORE_VERSION"
+          if [ -z "$core" ]; then
+            core=$(gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName)
+            core=${core#v}
+          fi
           cd "$SERVER"
-          spec="github.com/HosihikariFramework/HostingShim"
-          if [ -n "${{ inputs.version }}" ]; then spec="$spec@${{ inputs.version }}"; fi
-          lip install "$spec"
+          curl -fsSL "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-selfhosted-linux-x64.zip" -o "$RUNNER_TEMP/shim.zip"
+          curl -fsSL "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -o "$RUNNER_TEMP/core.zip"
+          unzip -qo "$RUNNER_TEMP/shim.zip" -d "$SERVER"
+          unzip -qo "$RUNNER_TEMP/core.zip" -d "$SERVER"
+          chmod +x hosihikari-server
           test -f plugins/hosihikari/libhosihikari.so
           test -f plugins/hosihikari/libnethost.so
           test -f plugins/hosihikari/Hosihikari.PluginManager.dll

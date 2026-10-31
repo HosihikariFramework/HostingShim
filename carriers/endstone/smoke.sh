@@ -4,7 +4,7 @@
 #   ./smoke.sh <folder containing bedrock_server>
 #
 # Needs a BDS folder with Endstone installed, and the framework package already
-# installed with lip (or otherwise laid out under plugins/). It starts the
+# installed from a release archive (or otherwise laid out under plugins/). It starts the
 # server through the Endstone CLI, asks for the plugin list, stops the server,
 # and checks that the CLR came up and the carrier took over.
 set -euo pipefail

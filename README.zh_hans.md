@@ -52,7 +52,7 @@ powershell -File carriers\endstone\smoke.ps1 -ServerRoot <Endstone 服务端根�
 `stop`，断言插件写出的文件、崩溃故障与载体的移除告警。CLI 默认找
 `%TEMP%\endstone-venv\Scripts\endstone.exe`，也可以用 `ENDSTONE_EXE` 指。
 
-只验载体本身的一条短路径，对着已经用 lip 装好的包跑，不铺加载器与插件：
+只验载体本身的一条短路径，对着已经解压好的 Release 附件跑，不铺加载器与插件：
 
 ```
 powershell -File carriers\endstone\smoke-live.ps1 -ServerRoot <服务端根目录>
@@ -144,40 +144,30 @@ cmake --build build --config Release
   纯头文件的 INTERFACE 库，只编我们自己的代码。
 - **`carriers/selfhosted-linux/`** 在 `ubuntu-latest` 上构建与装配；`verify-live` 的 `selfhosted`
   输入用预加载垫片起 BDS。
-- **`verify-lip`**（手动）在 `ubuntu-latest` 上用 lip 装 Linux 变体并检查落盘。
-- **`verify-live`**（手动）下载 BDS，装 Endstone 与 lip 发布包，在 Windows 与 Linux 上起服，断言 CLR
+- **`verify-live`**（手动）下载 BDS，装 Endstone 与 Release 附件，在 Windows 与 Linux 上起服，断言 CLR
   与载体起来、服务端正常停服。
 
 更完整的交付/启停/卸载/重载仍由本地的 `smoke.ps1` 跑，需要一台真服务端。
 
 ## 分发
 
-`tooth.json` 在**仓根**：lip 把 `tooth` 字段整个当成一个 Git 仓库来解析，仓根以下的东西它看不见。
-一份包，四个变体：
+打 `v*` 会构建四个原生归档并挂到同一个 GitHub Release。每个归档都在**服务端根目录**解压；托管核心来自
+[Core 的 Release](https://github.com/HosihikariFramework/PluginManager/releases)，单独下载：
 
-| 变体 | 装什么 |
+| 附件 | 装什么 |
 |---|---|
-| 默认（不带 label） | 自持态 Linux 载体：`hosihikari-server` 放服务端根，原生垫片进 `plugins/hosihikari/` |
-| `#levilamina` | LeviLamina 载体，落进 `plugins/hosihikari/`；托管文件由 Core 包补齐 |
-| `#endstone` | Endstone 载体，Windows 与 Linux 共用：Windows 把 dll 与 `nethost.dll` 放到 `bedrock_server.exe` 旁边；Linux 把 `.so` 与 `libnethost.so` 放进 `plugins/`。由 `platform` 选择附件 |
+| `hosihikari-selfhosted-linux-x64.zip` | 自持态 Linux：`hosihikari-server` 放服务端根，原生垫片进 `plugins/hosihikari/`；解压后 `chmod +x hosihikari-server` |
+| `hosihikari-levilamina-windows-x64.zip` | LeviLamina：原生载体进 `plugins/hosihikari/`；同时安装 LeviLamina 与 Core 归档 |
+| `hosihikari-endstone-windows-x64.zip` | Endstone Windows：`plugins/hosihikari.dll` 与根目录 `nethost.dll` |
+| `hosihikari-endstone-linux-x64.zip` | Endstone Linux：`plugins/hosihikari.so` 与 `plugins/libnethost.so` |
 
-```
-lip install github.com/HosihikariFramework/HostingShim                # 自持态 Linux
-lip install github.com/HosihikariFramework/HostingShim#levilamina     # LeviLamina
-lip install github.com/HosihikariFramework/HostingShim#endstone
-```
+每个载体还要从 [Core 的 Release](https://github.com/HosihikariFramework/PluginManager/releases)
+下载 `hosihikari-core-<版本>.zip`。把载体与核心归档解压到同一个服务端根目录；两者写
+`plugins/hosihikari/` 下的不同文件，按文件合并。原生垫片启动前会检查入口契约版本，所以选核心版本时
+要对齐发布说明里的兼容线。**要先有标签与对应的 release 才装得了。**
 
-无后缀的包是自持态 Linux 载体；LeviLamina 改用带 label 的变体。每个变体都依赖
-[Core 包](https://github.com/HosihikariFramework/PluginManager)，lip 会把它装进
-`plugins/hosihikari/`；原生垫片启动前会检查入口契约版本。发布附件只含原生文件；
-`deploy.bat` 与 `deploy.sh` 在源码部署时还会从同级插件管理器检出复制一份；版本来自 Git tag，
-所以**要先有标签与对应的 release 才装得了**。
-打 `v*` 会跑发布工作流，编出四个归档并挂到同一个 release。自持态的 post_install 脚本会给
-`hosihikari-server` 加可执行位；跳过脚本时请自己 `chmod +x hosihikari-server`。
-
-lip 解析版本走的是 **Go module proxy**（`proxy.golang.org`），不是直接看 git tag —— 所以刚推上去的
-标签要等代理索引到才能装，在那之前 `lip install` 会报 "Failed to find the latest version"。
-上面的变体就是这样装出来的。
+源码部署可以改用 `deploy.bat` / `deploy.sh` 配同级插件管理器检出；发布归档就是用它们在 `shim-only`
+模式下铺出来的。
 
 ## 还没做的
 

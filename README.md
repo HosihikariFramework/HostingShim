@@ -60,7 +60,7 @@ It stages the loader package and two Node plugins, drives `plugins` / `endstone:
 warning. The CLI is looked up at `%TEMP%\endstone-venv\Scripts\endstone.exe`, then `ENDSTONE_EXE`,
 then PATH.
 
-A shorter carrier-only pass runs against an already installed lip package, without staging
+A shorter carrier-only pass runs against an already installed release archive, without staging
 loaders or plugins:
 
 ```
@@ -162,9 +162,7 @@ suspended `bedrock_server.exe` and calls that export.
   SDK is a header-only interface library, so only our own code is compiled.
 - **`carriers/selfhosted-linux/`** builds and deploys on `ubuntu-latest`; `verify-live` with the
   `selfhosted` input starts BDS through the preloaded shim.
-- **`verify-lip`** (manual) installs the Linux variant with lip on `ubuntu-latest` and checks the
-  placement.
-- **`verify-live`** (manual) downloads BDS, installs Endstone and the released lip package, starts
+- **`verify-live`** (manual) downloads BDS, installs Endstone and the released archives, starts
   the server on Windows and Linux, and checks that the CLR and carrier come up and the server stops.
 
 Live carrier behaviour is covered by the manual `verify-live` workflow. The fuller
@@ -172,34 +170,27 @@ delivery/enable/disable/unload/reload pass remains local via `smoke.ps1`.
 
 ## Distribution
 
-`tooth.json` sits at the **repository root**: lip resolves the `tooth` field as a whole Git
-repository, so anything below the root is invisible to it. One package, four variants:
+Tagging `v*` builds four native archives and attaches them to one GitHub release. Every archive
+extracts at the **server root**; the managed core comes from the
+[Core release](https://github.com/HosihikariFramework/PluginManager/releases), which is a separate
+download:
 
-| Variant | What it installs |
+| Asset | What it installs |
 |---|---|
-| default (no label) | The self-hosted Linux carrier: `hosihikari-server` at the server root, the native shim into `plugins/hosihikari/` |
-| `#levilamina` | The LeviLamina carrier into `plugins/hosihikari/`; the Core package adds the managed files |
-| `#endstone` | The Endstone carrier on Windows and Linux: Windows places the DLL and `nethost.dll` next to `bedrock_server.exe`; Linux places the `.so` and `libnethost.so` into `plugins/`. `platform` selects the archive |
+| `hosihikari-selfhosted-linux-x64.zip` | Self-hosted Linux: `hosihikari-server` at the server root and the native shim into `plugins/hosihikari/`; run `chmod +x hosihikari-server` after extracting |
+| `hosihikari-levilamina-windows-x64.zip` | LeviLamina: the native carrier into `plugins/hosihikari/`; install LeviLamina and the Core archive alongside it |
+| `hosihikari-endstone-windows-x64.zip` | Endstone Windows: `plugins/hosihikari.dll` and `nethost.dll` at the server root |
+| `hosihikari-endstone-linux-x64.zip` | Endstone Linux: `plugins/hosihikari.so` and `plugins/libnethost.so` |
 
-```
-lip install github.com/HosihikariFramework/HostingShim                # self-hosted Linux
-lip install github.com/HosihikariFramework/HostingShim#levilamina     # LeviLamina
-lip install github.com/HosihikariFramework/HostingShim#endstone
-```
+Every carrier also needs `hosihikari-core-<version>.zip` from the
+[Core releases](https://github.com/HosihikariFramework/PluginManager/releases). Extract the carrier
+and core archives into the same server root; they write different files under
+`plugins/hosihikari/` and are meant to be merged. The native shim checks the hosting-contract
+version before it starts the runtime, so pick a core release from the compatibility line listed in
+the release notes. A tag and a matching release are required before any of this can be installed.
 
-The suffix-less package is the self-hosted Linux carrier; LeviLamina is the labeled variant. Every
-variant depends on the [Core package](https://github.com/HosihikariFramework/PluginManager),
-which lip installs into `plugins/hosihikari/`; the native shim checks the hosting-contract version
-before it starts the runtime. The release assets contain only native files; the
-`deploy.bat` and `deploy.sh` scripts also copy a sibling core checkout for source deployments; the
-version comes from a Git tag, so **a tag and a matching release are required before any of this can
-be installed**. Tagging `v*` runs the release workflow that builds all four archives and attaches
-them to one release. The self-hosted post-install script marks `hosihikari-server` executable; if
-scripts are skipped, run `chmod +x hosihikari-server` yourself.
-
-lip resolves versions through the **Go module proxy** (`proxy.golang.org`), not git tags directly,
-so a freshly pushed tag takes a while to become installable: until the proxy indexes it,
-`lip install` reports "Failed to find the latest version". The variants above are installed this way.
+Source deployments can use `deploy.bat` / `deploy.sh` with a sibling core checkout instead; the
+release archives are assembled with the same scripts in `shim-only` mode.
 
 ## Not done yet
 

@@ -5,7 +5,7 @@
 #
 # The managed core is taken from a sibling checkout of Hosihikari.PluginManager,
 # or from HOSIHIKARI_PLUGINMANAGER. Release packaging passes shim-only: the core
-# then comes from its own lip package. libnethost.so goes next to the plugin:
+# then comes from its own release archive. libnethost.so goes next to the plugin:
 # the plugin is linked with $ORIGIN so the loader looks there, unlike Windows
 # where nethost.dll sits next to bedrock_server.exe.
 set -euo pipefail

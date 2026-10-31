@@ -10,7 +10,6 @@ control to the managed core, and provide the LeviLamina, Endstone, and self-host
 - `carriers/endstone/` — CMake carrier for Endstone on Windows and Linux.
 - `carriers/selfhosted-linux/` — CMake carrier and launcher for the self-hosted Linux server.
 - `verify/` — host-glue, host DLL, and injector checks for the native to managed hop.
-- `tooth.json` — lip package with four variants.
 
 ## Build and verify
 
@@ -27,15 +26,19 @@ bash carriers/selfhosted-linux/build.sh
 bash carriers/endstone/smoke.sh <server root>
 ```
 
-CI also runs `verify-lip`, `verify-live`, and `verify-providers`. Live tests need a server root and
-the released lip package; they are manual workflows.
+CI also runs `verify-live` and `verify-providers`. Live tests need a server root and the released
+archives; they are manual workflows.
 
 ## Invariants
 
 - All carriers build as C++23. LeviLamina headers already use `std::to_underlying`; keep the CMake
   and xmake standards aligned.
-- Release archives contain native files only. The managed core comes from the PluginManager lip
-  dependency.
+- Release archives contain native files only. The managed core comes from the PluginManager release
+  archive.
+- Every release archive extracts at the server root: LeviLamina writes `plugins/hosihikari/`,
+  Endstone Windows writes `plugins/hosihikari.dll` and `nethost.dll`, Endstone Linux writes
+  `plugins/hosihikari.so` and `plugins/libnethost.so`, and self-hosted Linux writes
+  `hosihikari-server` and `plugins/hosihikari/`.
 - All four variants keep their labels and dependency range in sync.
 - The hosting contract version is 1. Apply carrier-specific changes to every affected carrier.
 - Do not commit build trees, downloaded SDKs, or server roots.
