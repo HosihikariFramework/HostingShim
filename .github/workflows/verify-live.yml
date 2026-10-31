@@ -32,11 +32,15 @@ on:
         description: 'Linux: run the self-hosted carrier instead of the Endstone jobs'
         type: boolean
         default: false
+      selfhosted_windows:
+        description: 'Windows: run the self-hosted carrier instead of the parented jobs'
+        type: boolean
+        default: false
 
 jobs:
   windows:
     name: Endstone / Windows
-    if: ${{ !inputs.source && !inputs.selfhosted }}
+    if: ${{ !inputs.source && !inputs.selfhosted && !inputs.selfhosted_windows }}
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -100,7 +104,7 @@ jobs:
 
   levilamina:
     name: LeviLamina / Windows
-    if: ${{ !inputs.source && !inputs.selfhosted }}
+    if: ${{ !inputs.source && !inputs.selfhosted && !inputs.selfhosted_windows }}
     runs-on: windows-latest
     timeout-minutes: 20
     env:
@@ -161,7 +165,7 @@ jobs:
 
   linux:
     name: Endstone / Linux
-    if: ${{ !inputs.selfhosted }}
+    if: ${{ !inputs.selfhosted && !inputs.selfhosted_windows }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -365,3 +369,55 @@ jobs:
           set -euo pipefail
           chmod +x Shim/carriers/selfhosted-linux/smoke.sh
           Shim/carriers/selfhosted-linux/smoke.sh "$SERVER"
+
+  selfhosted-windows:
+    name: 自持态 / Windows
+    if: ${{ inputs.selfhosted_windows }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      BDS_VERSION: ${{ inputs.selfhosted_bds_version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - name: 下载 BDS
+        shell: pwsh
+        run: |
+          $server = Join-Path $env:RUNNER_TEMP 'server'
+          New-Item -ItemType Directory -Force $server | Out-Null
+          Invoke-WebRequest -Uri "https://www.minecraft.net/bedrockdedicatedserver/bin-win/bedrock-server-$env:BDS_VERSION.zip" `
+            -OutFile "$env:RUNNER_TEMP\bds.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\bds.zip" -DestinationPath $server -Force
+          'eula=true' | Set-Content -Path (Join-Path $server 'eula.txt') -Encoding ASCII
+          "SERVER=$server" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: 安装载体
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIM_VERSION: ${{ inputs.version }}
+          CORE_VERSION: ${{ inputs.core_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $shim = $env:SHIM_VERSION
+          if (-not $shim) {
+            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+          }
+          $core = $env:CORE_VERSION
+          if (-not $core) {
+            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+          }
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-selfhosted-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\shim.zip" -DestinationPath $env:SERVER -Force
+          Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath $env:SERVER -Force
+          Remove-Item (Join-Path $env:SERVER 'sei.json') -ErrorAction SilentlyContinue
+          foreach ($file in @('hosihikari-server.exe', 'plugins/hosihikari/hosihikari.dll', 'plugins/hosihikari/Hosihikari.PluginManager.dll')) {
+            if (-not (Test-Path (Join-Path $env:SERVER $file))) { throw "missing $file" }
+          }
+
+      - name: 冒烟
+        shell: pwsh
+        run: pwsh -File Shim/carriers/selfhosted-windows/smoke.ps1 -ServerRoot $env:SERVER -DelaySeconds 45
