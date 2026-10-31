@@ -57,9 +57,14 @@ jobs:
         working-directory: Shim
         run: carriers\endstone\build.bat
 
+      - name: 构建自持态 Windows 载体
+        shell: cmd
+        working-directory: Shim
+        run: carriers\selfhosted-windows\build.bat
+
       # 用各自的 deploy 脚本铺到空目录：铺出来的就是解压到服务端根目录期望的形状，
       # 发布物与本地部署因此不会悄悄分叉。
-      - name: 装配两个附件
+      - name: 装配 Windows 附件
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -69,6 +74,7 @@ jobs:
 
           & "$root\Shim\carriers\levilamina\deploy.bat" "$root\stage-levilamina" shim-only
           & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only
+          & "$root\Shim\carriers\selfhosted-windows\deploy.ps1" -ServerRoot "$root\stage-selfhosted-windows" -ShimOnly
 
           # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
           # 这样 zip 顶层不会多出一层 ./ 或目录名。
@@ -81,6 +87,11 @@ jobs:
                 -C "$root\stage-endstone" plugins/hosihikari.dll nethost.dll
           if ($LASTEXITCODE -ne 0) { throw 'packaging the Endstone variant failed' }
 
+          # 自持态那份是启动器加垫片；托管核心同样由 Core 附件落盘。
+          & tar -a -c -f "$out\hosihikari-selfhosted-windows-x64.zip" `
+                -C "$root\stage-selfhosted-windows" hosihikari-server.exe plugins/hosihikari
+          if ($LASTEXITCODE -ne 0) { throw 'packaging the self-hosted Windows variant failed' }
+
           $expected = @{
             'hosihikari-levilamina-windows-x64.zip' = @(
               'plugins/hosihikari/hosihikari.dll',
@@ -89,6 +100,10 @@ jobs:
             'hosihikari-endstone-windows-x64.zip' = @(
               'plugins/hosihikari.dll',
               'nethost.dll'
+            )
+            'hosihikari-selfhosted-windows-x64.zip' = @(
+              'hosihikari-server.exe',
+              'plugins/hosihikari/hosihikari.dll'
             )
           }
           foreach ($name in $expected.Keys) {
