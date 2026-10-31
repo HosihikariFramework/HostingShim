@@ -9,6 +9,7 @@ control to the managed core, and provide the LeviLamina, Endstone, and self-host
 - `carriers/levilamina/` — xmake carrier for LeviLamina.
 - `carriers/endstone/` — CMake carrier for Endstone on Windows and Linux.
 - `carriers/selfhosted-linux/` — CMake carrier and launcher for the self-hosted Linux server.
+- `carriers/selfhosted-windows/` — CMake carrier and injecting launcher for the self-hosted Windows server.
 - `verify/` — host-glue, host DLL, and injector checks for the native to managed hop.
 
 ## Build and verify
@@ -16,6 +17,8 @@ control to the managed core, and provide the LeviLamina, Endstone, and self-host
 ```powershell
 carriers\levilamina\build.bat
 carriers\endstone\build.bat
+carriers\selfhosted-windows\build.bat
+pwsh carriers\selfhosted-windows\smoke.ps1 -ServerRoot <server root>
 cmake -S verify -B build -G "Visual Studio 18 2026" -A x64
 cmake --build build --config Release
 ```
@@ -37,9 +40,10 @@ archives; they are manual workflows.
   archive.
 - Every release archive extracts at the server root: LeviLamina writes `plugins/hosihikari/`,
   Endstone Windows writes `plugins/hosihikari.dll` and `nethost.dll`, Endstone Linux writes
-  `plugins/hosihikari.so` and `plugins/libnethost.so`, and self-hosted Linux writes
-  `hosihikari-server` and `plugins/hosihikari/`.
-- All four variants keep their labels and dependency range in sync.
+  `plugins/hosihikari.so` and `plugins/libnethost.so`, self-hosted Linux writes
+  `hosihikari-server` and `plugins/hosihikari/`, and self-hosted Windows writes
+  `hosihikari-server.exe` and `plugins/hosihikari/`.
+- The self-hosted Windows shim links nethost statically: the archive carries no `nethost.dll`.
 - The hosting contract version is 1. Apply carrier-specific changes to every affected carrier.
 - Do not commit build trees, downloaded SDKs, or server roots.
 - Public default branches are protected. Work on a branch, open a pull request, and squash merge.

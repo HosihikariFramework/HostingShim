@@ -133,6 +133,26 @@ under a parent. A carrier-only live pass:
 bash carriers/selfhosted-linux/smoke.sh <folder containing bedrock_server>
 ```
 
+### Carrier: self-hosted Windows
+
+```
+carriers\selfhosted-windows\build.bat
+pwsh carriers\selfhosted-windows\deploy.ps1 -ServerRoot <server root>
+hosihikari-server.exe
+```
+
+`hosihikari-server.exe` starts `bedrock_server.exe` suspended, injects
+`plugins/hosihikari/hosihikari.dll`, calls its exported entry, and resumes the server. The CLR starts
+in that call, outside the loader lock (ADR-0016); the launcher is the answer to "who loads us in
+production" (ADR-0046). The shim links nethost statically, so there is no `nethost.dll` to deploy.
+
+The self-hosted Windows target is BDS 1.21.3.01, the same ceiling as self-hosted Linux (ADR-0001).
+A carrier-only live pass:
+
+```
+pwsh carriers\selfhosted-windows\smoke.ps1 -ServerRoot <server root>
+```
+
 ### Native seam (carrier-independent)
 
 ```
@@ -148,9 +168,9 @@ Build the managed side first with `dotnet build src/Hosihikari.PluginManager.csp
 first builds the startup sequence as a DLL with an exported entry point, the second injects it into a
 suspended `bedrock_server.exe` and calls that export.
 
-> `injector` is **verification scaffolding, not a deliverable**, and is not meant to become a
-> general-purpose injector. It exists because ADR-0022 defers "who loads us in production" (PreLoader
-> only offers `DllMain`, which conflicts with ADR-0016), not "whether we can be loaded".
+> `injector` stays **verification scaffolding**: the production loader is the self-hosted Windows
+> launcher, which owns the injection and the exported-entry call (ADR-0046). `injector` remains a
+> way to prove the native-to-managed hop against a real `bedrock_server.exe`.
 
 ## What CI covers
 
@@ -162,6 +182,8 @@ suspended `bedrock_server.exe` and calls that export.
   SDK is a header-only interface library, so only our own code is compiled.
 - **`carriers/selfhosted-linux/`** builds and deploys on `ubuntu-latest`; `verify-live` with the
   `selfhosted` input starts BDS through the preloaded shim.
+- **`carriers/selfhosted-windows/`** builds on `windows-latest` as part of the release job; the
+  live pass is the local `smoke.ps1` against a 1.21.3 server root.
 - **`verify-live`** (manual) downloads BDS, installs Endstone and the released archives, starts
   the server on Windows and Linux, and checks that the CLR and carrier come up and the server stops.
 
@@ -170,7 +192,7 @@ delivery/enable/disable/unload/reload pass remains local via `smoke.ps1`.
 
 ## Distribution
 
-Tagging `v*` builds four native archives and attaches them to one GitHub release. Every archive
+Tagging `v*` builds five native archives and attaches them to one GitHub release. Every archive
 extracts at the **server root**; the managed core comes from the
 [Core release](https://github.com/HosihikariFramework/PluginManager/releases), which is a separate
 download:
@@ -181,6 +203,7 @@ download:
 | `hosihikari-levilamina-windows-x64.zip` | LeviLamina: the native carrier into `plugins/hosihikari/`; install LeviLamina and the Core archive alongside it |
 | `hosihikari-endstone-windows-x64.zip` | Endstone Windows: `plugins/hosihikari.dll` and `nethost.dll` at the server root |
 | `hosihikari-endstone-linux-x64.zip` | Endstone Linux: `plugins/hosihikari.so` and `plugins/libnethost.so` |
+| `hosihikari-selfhosted-windows-x64.zip` | Self-hosted Windows: `hosihikari-server.exe` at the server root and the native shim into `plugins/hosihikari/`; start the server through the launcher |
 
 Every carrier also needs `hosihikari-core-<version>.zip` from the
 [Core releases](https://github.com/HosihikariFramework/PluginManager/releases). Extract the carrier
@@ -191,11 +214,6 @@ the release notes. A tag and a matching release are required before any of this 
 
 Source deployments can use `deploy.bat` / `deploy.sh` with a sibling core checkout instead; the
 release archives are assembled with the same scripts in `shim-only` mode.
-
-## Not done yet
-
-Self-hosted Windows remains deferred (ADR-0022). LeviLamina, Endstone on Windows and Linux, and
-self-hosted Linux are in place.
 
 ## Licence
 

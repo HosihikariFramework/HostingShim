@@ -117,6 +117,24 @@ bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
 bash carriers/selfhosted-linux/smoke.sh <bedrock_server 所在目录>
 ```
 
+### 载体（自持态 Windows）
+
+```
+carriers\selfhosted-windows\build.bat
+pwsh carriers\selfhosted-windows\deploy.ps1 -ServerRoot <服务端根目录>
+hosihikari-server.exe
+```
+
+`hosihikari-server.exe` 挂起启动 `bedrock_server.exe`，把 `plugins/hosihikari/hosihikari.dll` 注入进去，
+调用它的导出入口，再恢复运行。CLR 在这次调用里启动，不在 loader lock 下（ADR-0016）；启动器就是
+「生产里谁加载」的答案（ADR-0046）。垫片静态链接 nethost，不需要部署 `nethost.dll`。
+
+自持态 Windows 的目标是 BDS 1.21.3.01，与自持态 Linux 同一个上限（ADR-0001）。只验载体本身的真机路径：
+
+```
+pwsh carriers\selfhosted-windows\smoke.ps1 -ServerRoot <服务端根目录>
+```
+
 ### 原生缝（与载体无关）
 
 ```
@@ -131,9 +149,8 @@ cmake --build build --config Release
 `verify/host-dll/` 与 `verify/injector/` 是同一件事在**真实 BDS 进程里**的版本：前者把启动序列编成一个
 导出入口的 DLL，后者把它注入一个挂起启动的 `bedrock_server.exe`，再显式调那个导出。
 
-> `injector` 是**验证脚手架，不是交付物**，也不打算做成通用注入器 —— 它存在的唯一理由是
-> ADR-0022 暂缓的是"生产里谁加载我们"（PreLoader 只给 `DllMain`，与 ADR-0016 冲突），而不是
-> "能不能被加载"。要把它用在别处，先想清楚这一点。
+> `injector` 仍是**验证脚手架**：生产里的加载器是自持态 Windows 的启动器，注入与导出调用由它负责
+> （ADR-0046）。`injector` 保留为在真实 `bedrock_server.exe` 上验证原生到托管这一跳的手段。
 
 ## CI 覆盖到哪
 
@@ -144,6 +161,8 @@ cmake --build build --config Release
   纯头文件的 INTERFACE 库，只编我们自己的代码。
 - **`carriers/selfhosted-linux/`** 在 `ubuntu-latest` 上构建与装配；`verify-live` 的 `selfhosted`
   输入用预加载垫片起 BDS。
+- **`carriers/selfhosted-windows/`** 随发布任务在 `windows-latest` 上编出来；真机路径由本地
+  `smoke.ps1` 对一台 1.21.3 服务端跑。
 - **`verify-live`**（手动）下载 BDS，装 Endstone 与 Release 附件，在 Windows 与 Linux 上起服，断言 CLR
   与载体起来、服务端正常停服。
 
@@ -151,7 +170,7 @@ cmake --build build --config Release
 
 ## 分发
 
-打 `v*` 会构建四个原生归档并挂到同一个 GitHub Release。每个归档都在**服务端根目录**解压；托管核心来自
+打 `v*` 会构建五个原生归档并挂到同一个 GitHub Release。每个归档都在**服务端根目录**解压；托管核心来自
 [Core 的 Release](https://github.com/HosihikariFramework/PluginManager/releases)，单独下载：
 
 | 附件 | 装什么 |
@@ -160,6 +179,7 @@ cmake --build build --config Release
 | `hosihikari-levilamina-windows-x64.zip` | LeviLamina：原生载体进 `plugins/hosihikari/`；同时安装 LeviLamina 与 Core 归档 |
 | `hosihikari-endstone-windows-x64.zip` | Endstone Windows：`plugins/hosihikari.dll` 与根目录 `nethost.dll` |
 | `hosihikari-endstone-linux-x64.zip` | Endstone Linux：`plugins/hosihikari.so` 与 `plugins/libnethost.so` |
+| `hosihikari-selfhosted-windows-x64.zip` | 自持态 Windows：`hosihikari-server.exe` 放服务端根，原生垫片进 `plugins/hosihikari/`；用启动器启动服务端 |
 
 每个载体还要从 [Core 的 Release](https://github.com/HosihikariFramework/PluginManager/releases)
 下载 `hosihikari-core-<版本>.zip`。把载体与核心归档解压到同一个服务端根目录；两者写
@@ -168,11 +188,6 @@ cmake --build build --config Release
 
 源码部署可以改用 `deploy.bat` / `deploy.sh` 配同级插件管理器检出；发布归档就是用它们在 `shim-only`
 模式下铺出来的。
-
-## 还没做的
-
-自持态 Windows 仍按 ADR-0022 暂缓。LeviLamina、Endstone（Windows 与 Linux）与自持态 Linux
-都已就位。
 
 ## 许可
 

@@ -8,11 +8,11 @@ on:
       shim_version:
         description: 'Shim version'
         required: true
-        default: '1.1.0'
+        default: '1.2.0'
       core_version:
         description: 'Core version'
         required: true
-        default: '1.1.0'
+        default: '1.2.0'
       csharp_version:
         description: 'C# Loader version'
         required: true
