@@ -22,7 +22,7 @@ body:
     attributes:
       label: Versions
       description: HostingShim, PluginManager, BDS, and carrier versions.
-      placeholder: "HostingShim 1.2.0, PluginManager 1.2.0, BDS 1.26.51, LeviLamina 26.51.7"
+      placeholder: "HostingShim 1.2.1, PluginManager 1.2.0, BDS 1.26.51, LeviLamina 26.51.7"
     validations:
       required: true
   - type: input
