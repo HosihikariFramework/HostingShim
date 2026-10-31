@@ -83,11 +83,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $shim = $env:SHIM_VERSION
           if (-not $shim) {
-            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+            $shim = (gh release list --repo HosihikariFramework/HostingShim --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           $core = $env:CORE_VERSION
           if (-not $core) {
-            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+            $core = (gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           Set-Location $env:SERVER
           Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-endstone-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
@@ -144,11 +144,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $shim = $env:SHIM_VERSION
           if (-not $shim) {
-            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+            $shim = (gh release list --repo HosihikariFramework/HostingShim --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           $core = $env:CORE_VERSION
           if (-not $core) {
-            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+            $core = (gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           Set-Location $env:SERVER
           lip install github.com/LiteLDev/LeviLamina@26.51.9
@@ -250,12 +250,12 @@ jobs:
           set -euo pipefail
           shim="$SHIM_VERSION"
           if [ -z "$shim" ]; then
-            shim=$(gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName)
+            shim=$(gh release list --repo HosihikariFramework/HostingShim --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName')
             shim=${shim#v}
           fi
           core="$CORE_VERSION"
           if [ -z "$core" ]; then
-            core=$(gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName)
+            core=$(gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName')
             core=${core#v}
           fi
           cd "$SERVER"
@@ -345,12 +345,12 @@ jobs:
           set -euo pipefail
           shim="$SHIM_VERSION"
           if [ -z "$shim" ]; then
-            shim=$(gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName)
+            shim=$(gh release list --repo HosihikariFramework/HostingShim --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName')
             shim=${shim#v}
           fi
           core="$CORE_VERSION"
           if [ -z "$core" ]; then
-            core=$(gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName)
+            core=$(gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName')
             core=${core#v}
           fi
           cd "$SERVER"
@@ -403,11 +403,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $shim = $env:SHIM_VERSION
           if (-not $shim) {
-            $shim = (gh release view --repo HosihikariFramework/HostingShim --json tagName -q .tagName) -replace '^v', ''
+            $shim = (gh release list --repo HosihikariFramework/HostingShim --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           $core = $env:CORE_VERSION
           if (-not $core) {
-            $core = (gh release view --repo HosihikariFramework/PluginManager --json tagName -q .tagName) -replace '^v', ''
+            $core = (gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-selfhosted-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
           Expand-Archive -Path "$env:RUNNER_TEMP\shim.zip" -DestinationPath $env:SERVER -Force
