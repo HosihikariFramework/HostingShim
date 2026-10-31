@@ -31,7 +31,7 @@ jobs:
               schemaVersion: 1,
               name: $name,
               version: $version,
-              dependencies: [{ name: "hosihikari-hosting", version: "[1.2.0,2.0.0)" }],
+              dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
               layout: "root"
             }' > "$work/sei.json"
             (cd "$work" && zip -q "$GITHUB_WORKSPACE/out/$name-$VERSION.zip" sei.json)
@@ -79,7 +79,7 @@ jobs:
               "https://github.com/$GITHUB_REPOSITORY/releases/download/sei-bundles-v$VERSION/$name-$VERSION.zip" \
               --arg sha "$sha" --argjson size "$size" '{
                 version: $version,
-                dependencies: [{ name: "hosihikari-hosting", version: "[1.2.0,2.0.0)" }],
+                dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
                 artifacts: [{ layout: "root", source: { url: $url, sha256: $sha, size: $size } }]
               }')
             body=$(printf '### Sei name\n\n%s\n\n### Version entry (JSON)\n\n```json\n%s\n```\n' "$name" "$entry")
