@@ -45,8 +45,8 @@ fail() {
 
 [ "$server_status" -eq 0 ] || fail "server exited with status $server_status"
 grep -q "Server started" "$log" || fail "server did not start"
-grep -q "已加载" "$log" || fail "core did not scan plugins/"
-grep -q "启动失败" "$log" && fail "core reported a startup failure"
+grep -Eq "已加载|Loaded [0-9]+ plugin|Chargé [0-9]+|Загружено|Cargados [0-9]+|تم تحميل" "$log" || fail "core did not scan plugins/"
+grep -Eq "启动失败|Startup failed|Échec du démarrage|Ошибка запуска|Error al iniciar|فشل بدء التشغيل" "$log" && fail "core reported a startup failure"
 grep -qE "Server stop requested|Stopping server" "$log" || fail "server did not stop cleanly"
 
 if grep -qE "Unhandled exception|Segmentation fault" "$log"; then

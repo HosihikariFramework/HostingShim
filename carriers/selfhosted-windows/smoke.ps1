@@ -61,7 +61,7 @@ function Fail([string]$message) {
     exit 1
 }
 
-if ($text -notmatch '已加载') { Fail 'core did not scan plugins/' }
+if ($text -notmatch '已加载|Loaded \d+ plugin|Chargé \d+|Загружено|Cargados \d+|تم تحميل') { Fail 'core did not scan plugins/' }
 if ($text -notmatch 'Starting Server') { Fail 'server did not start' }
 if ($text -match '\[hosihikari\] 失败') { Fail 'the launcher or shim reported a failure' }
 if ($text -match 'Unhandled exception') { Fail 'the server died' }
