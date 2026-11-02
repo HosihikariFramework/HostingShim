@@ -1,0 +1,12 @@
+{
+  "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.": "Hosihikari: невозможно отключить или выгрузить фреймворк: CLR размещён в этом процессе, а .NET не выгружает среду выполнения; если освободить эту DLL, менеджер плагинов в реестре родителя будет указывать на выгруженный код. Чтобы остановить фреймворк, выгрузите его плагины; чтобы удалить его, перезапустите сервер.",
+  "Hosihikari: hosting the CLR in the BDS process": "Hosihikari: размещение CLR в процессе BDS",
+  "Hosihikari: startup sequence failed: 0x{0:08X}": "Hosihikari: сбой последовательности запуска: 0x{0:08X}",
+  "Hosihikari: could not get the managed core entry points": "Hosihikari: не удалось получить точки входа управляемого ядра",
+  "Hosihikari: managed entry returned {0}": "Hosihikari: управляемая точка входа вернула {0}",
+  "Hosihikari: failed to register the plugin manager": "Hosihikari: не удалось зарегистрировать менеджер плагинов",
+  "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line": "Hosihikari: управляемая сторона отклонила приёмник удаления; при сбое выгрузки останется только запись в журнале",
+  "Hosihikari: took over; the CLR is ready and the plugin manager is registered": "Hosihikari: управление принято; CLR готов, менеджер плагинов зарегистрирован",
+  "Hosihikari: failed to load {0}; the reason is in the log": "Hosihikari: не удалось загрузить {0}; причина указана в журнале",
+  "Hosihikari: {0} has been released, but reclamation verification has not passed yet": "Hosihikari: {0} освобождён, но проверка освобождения ещё не пройдена"
+}

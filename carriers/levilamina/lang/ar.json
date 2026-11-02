@@ -1,0 +1,12 @@
+{
+  "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.": "Hosihikari: تعذّر تعطيل الإطار أو إلغاء تحميله: بيئة CLR مُستضافة داخل هذه العملية، و.NET لا تلغي تحميل وقت التشغيل؛ وإفلات مكتبة DLL هذه سيترك مدير الإضافات في سجل الوالدين يشير إلى شيفرة أُلغي تحميلها. ألغِ تحميل إضافاته لإيقاف الإطار، أو أعد تشغيل الخادم لإزالته.",
+  "Hosihikari: hosting the CLR in the BDS process": "Hosihikari: تجري استضافة CLR داخل عملية BDS",
+  "Hosihikari: startup sequence failed: 0x{0:08X}": "Hosihikari: فشل تسلسل بدء التشغيل: 0x{0:08X}",
+  "Hosihikari: could not get the managed core entry points": "Hosihikari: تعذّر الحصول على نقاط دخول النواة المدارة",
+  "Hosihikari: managed entry returned {0}": "Hosihikari: أعادت نقطة الدخول المدارة {0}",
+  "Hosihikari: failed to register the plugin manager": "Hosihikari: فشل تسجيل مدير الإضافات",
+  "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line": "Hosihikari: رفض الجانب المدار مستقبِل الإزالة؛ ستنتهي عمليات إلغاء التحميل الفاشلة بسطر سجل فقط",
+  "Hosihikari: took over; the CLR is ready and the plugin manager is registered": "Hosihikari: تم تولّي المسؤولية؛ CLR جاهز ومدير الإضافات مسجّل",
+  "Hosihikari: failed to load {0}; the reason is in the log": "Hosihikari: فشل تحميل {0}؛ السبب موجود في السجل",
+  "Hosihikari: {0} has been released, but reclamation verification has not passed yet": "Hosihikari: تم تحرير {0}، لكن التحقق من الاستعادة لم ينجح بعد"
+}

@@ -58,7 +58,8 @@ fail() {
 
 [ "$server_status" -eq 0 ] || fail "server exited with status $server_status"
 grep -q "正在把 CLR 托管进 BDS 进程" "$log" || fail "carrier did not load the CLR"
-grep -q "Hosihikari: 已就绪" "$log" || fail "core did not report ready"
+grep -Eq "Hosihikari: (Ready; waiting|已就绪|Prêt ; en attente|Готово; ожидание|Listo; esperando|جاهز؛)" "$log" \
+    || fail "core did not report ready"
 grep -q "已接管" "$log" || fail "carrier did not take over the plugin set"
 takeovers=$(grep -c "已接管" "$log" || true)
 [ "$takeovers" -ge 2 ] || fail "carrier did not take over again after reload ($takeovers)"

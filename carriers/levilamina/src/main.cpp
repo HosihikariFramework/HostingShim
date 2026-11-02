@@ -16,12 +16,15 @@
 #include <memory>
 #include <string>
 
+#include "ll/api/i18n/I18n.h"
 #include "ll/api/mod/ModManagerRegistry.h"
 #include "ll/api/mod/NativeMod.h"
 #include "ll/api/mod/RegisterHelper.h"
 
 #include "dotnet.h"
 #include "mod_manager.h"
+
+using namespace ll::i18n_literals;
 
 namespace hosihikari::shim::levilamina {
 namespace {
@@ -74,11 +77,11 @@ void removalBridge(void* user, char const* nameUtf8) {
 /// 停用与卸载共用同一条理由。父级把失败原样报给操作者（"The mod cannot be disabled/
 /// unloaded"），原因得由这里补上，否则操作者只看到"不行"。
 bool refuseOffline() {
-    ll::mod::NativeMod::current()->getLogger().warn(std::string{
-        "框架停用或卸载都做不到：CLR 已经托管进这个进程，.NET 不卸载运行时；"
-        "而放掉本 dll 会让父级注册表里的插件管理器指向已卸载的代码。"
-        "要停框架请卸载它的插件，要移除它请重启服务端"
-    });
+    ll::mod::NativeMod::current()->getLogger().warn(
+        "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not "
+        "unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at "
+        "unloaded code. Unload its plugins to stop the framework, or restart the server to remove it."_tr()
+    );
     return false;
 }
 
@@ -91,16 +94,24 @@ bool ShimMod::load() {
     // 本模组的身份由父级给：目录、日志都从它那里取，不自己拿 GetModuleFileName 猜。
     const std::shared_ptr<ll::mod::NativeMod> self = ll::mod::NativeMod::current();
     if (self == nullptr) {
-        std::printf("[Hosihikari] 拿不到本模组，加载中止\n");
+        std::printf("[Hosihikari] could not get this mod; load aborted\n");
         return false;
     }
-    auto const& logger   = self->getLogger();
+    auto& logger = self->getLogger();
+
+    // 父级给每个 mod 一套语言目录（`<mod>/lang`）；加载失败就按英文键继续，
+    // 不因为翻译缺席而拖住宿主。
+    if (auto loaded = ll::i18n::getInstance().load(self->getLangDir()); !loaded) {
+        logger.warn("Hosihikari: failed to load language files; falling back to English");
+        loaded.error().log(logger);
+    }
+
     auto const  dir      = self->getModDir();
     auto const  assembly = dir / L"Hosihikari.PluginManager.dll";
     // 三个入口都住在同一个类型上，取法也一样。
     constexpr auto entryType = L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager";
 
-    logger.info("正在把 CLR 托管进 BDS 进程");
+    logger.info("Hosihikari: hosting the CLR in the BDS process"_tr());
     component_entry_point_fn start = nullptr;
     const int                code  = hosihikari::shim::StartRuntime(
         (dir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
@@ -111,7 +122,7 @@ bool ShimMod::load() {
         &start
     );
     if (code != 0 || start == nullptr) {
-        logger.error("启动序列失败：0x{:08X}", static_cast<unsigned>(code));
+        logger.error("Hosihikari: startup sequence failed: 0x{0:08X}"_tr(static_cast<unsigned>(code)));
         return false;
     }
 
@@ -128,7 +139,7 @@ bool ShimMod::load() {
         || fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
         || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0
         || setLogSink == nullptr || setRemovalSink == nullptr) {
-        logger.error("取不到托管核心入口");
+        logger.error("Hosihikari: could not get the managed core entry points"_tr());
         return false;
     }
 
@@ -147,7 +158,7 @@ bool ShimMod::load() {
 
     if (const int managed = start(nullptr, 0); managed != 0) {
         clearLogSink();
-        logger.error("托管入口返回 {}", managed);
+        logger.error("Hosihikari: managed entry returned {0}"_tr(managed));
         return false;
     }
 
@@ -155,7 +166,7 @@ bool ShimMod::load() {
     auto manager = std::make_shared<HosihikariModManager>(entries);
     if (!ll::mod::ModManagerRegistry::getInstance().addManager(manager)) {
         clearLogSink();
-        logger.error("注册插件管理器失败");
+        logger.error("Hosihikari: failed to register the plugin manager"_tr());
         return false;
     }
 
@@ -167,10 +178,12 @@ bool ShimMod::load() {
     };
     RemovalSink removal{&removalBridge, manager.get()};
     if (setRemovalSink(reinterpret_cast<char*>(&removal), sizeof(removal)) != 0) {
-        logger.warn("托管侧拒绝移除出口，故障卸载将只留日志");
+        logger.warn(
+            "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line"_tr()
+        );
     }
 
-    logger.info("已接管：CLR 就绪，插件管理器已注册");
+    logger.info("Hosihikari: took over; the CLR is ready and the plugin manager is registered"_tr());
     return true;
 }
 

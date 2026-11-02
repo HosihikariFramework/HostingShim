@@ -32,6 +32,15 @@ copy /y "%PACKED%\*.dll" "%DST%" >nul
 copy /y "%NETHOST%" "%DST%" >nul
 copy /y "%PACKED%\manifest.json" "%DST%" >nul
 
+REM The parent's i18n reads <mod>/lang; every release carries all six catalogs.
+for %%f in (ar en es fr ru zh_CN) do (
+    if not exist "%HERE%lang\%%f.json" (
+        echo carrier language file %%f.json is missing under "%HERE%lang"
+        exit /b 1
+    )
+)
+xcopy /e /i /y "%HERE%lang" "%DST%\lang" >nul
+
 if /i "%~2"=="shim-only" (
     echo deployed shim-only to %DST%
     endlocal

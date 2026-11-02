@@ -46,6 +46,8 @@ archives; they are manual workflows.
   `hosihikari-server.exe` and `plugins/hosihikari/`.
 - The self-hosted Windows shim links nethost statically: the archive carries no `nethost.dll`.
 - The hosting contract version is 1. Apply carrier-specific changes to every affected carrier.
+- The LeviLamina carrier loads operator messages from `plugins/hosihikari/lang/*.json` through
+  `ll::i18n`; `deploy.bat` and the release archive must carry all six catalogs.
 - Do not commit build trees, downloaded SDKs, or server roots.
 - Public default branches are protected. Work on a branch, open a pull request, and squash merge.
 
