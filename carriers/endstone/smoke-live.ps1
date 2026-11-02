@@ -8,7 +8,8 @@
     Usage: powershell -File smoke-live.ps1 -ServerRoot <folder with bedrock_server.exe>
 
     ASCII only: Windows PowerShell 5.1 reads a BOM-less script in the system
-    codepage. The expected Chinese log lines are built from [char] codes.
+    codepage. The expected Chinese log lines are built from [char] codes; the
+    English variants cover runners whose UI culture is not Chinese.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$ServerRoot
@@ -87,7 +88,7 @@ $takeovers = ([regex]::Matches($text, [regex]::Escape($tookOver))).Count
 $checks = @(
     @{ Name = 'server exited cleanly'; Ok = (-not $timedOut -and $serverExit -eq 0) },
     @{ Name = 'carrier loads the CLR'; Ok = ($text.Contains('CLR') -and $text.Contains('BDS')) },
-    @{ Name = 'core reports ready'; Ok = $text.Contains($ready) },
+    @{ Name = 'core reports ready'; Ok = ($text.Contains($ready) -or $text.Contains('Hosihikari: Ready; waiting')) },
     @{ Name = 'carrier takes over'; Ok = $text.Contains($tookOver) },
     @{ Name = 'reload takes over again'; Ok = $takeovers -ge 2 },
     @{ Name = 'parent enables carrier'; Ok = $text.Contains('Enabling hosihikari') },

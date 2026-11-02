@@ -201,3 +201,7 @@ jobs:
       - name: 构建
         shell: cmd
         run: carriers\levilamina\build.bat
+
+      - name: 语言目录
+        shell: pwsh
+        run: pwsh -File carriers/levilamina/check-lang.ps1

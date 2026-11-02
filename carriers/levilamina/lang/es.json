@@ -1,0 +1,12 @@
+{
+  "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.": "Hosihikari: no se puede desactivar ni descargar el framework: el CLR está alojado en este proceso y .NET no descarga el runtime; liberar este DLL dejaría en el registro del padre un gestor de plugins que apunta a código descargado. Descarga sus plugins para detener el framework o reinicia el servidor para retirarlo.",
+  "Hosihikari: hosting the CLR in the BDS process": "Hosihikari: alojando el CLR en el proceso de BDS",
+  "Hosihikari: startup sequence failed: 0x{0:08X}": "Hosihikari: la secuencia de inicio falló: 0x{0:08X}",
+  "Hosihikari: could not get the managed core entry points": "Hosihikari: no se pudieron obtener los puntos de entrada del núcleo administrado",
+  "Hosihikari: managed entry returned {0}": "Hosihikari: la entrada administrada devolvió {0}",
+  "Hosihikari: failed to register the plugin manager": "Hosihikari: no se pudo registrar el gestor de plugins",
+  "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line": "Hosihikari: el lado administrado rechazó el receptor de eliminación; las descargas fallidas solo dejarán una línea en el registro",
+  "Hosihikari: took over; the CLR is ready and the plugin manager is registered": "Hosihikari: toma de control completada; el CLR está listo y el gestor de plugins está registrado",
+  "Hosihikari: failed to load {0}; the reason is in the log": "Hosihikari: no se pudo cargar {0}; el motivo está en el registro",
+  "Hosihikari: {0} has been released, but reclamation verification has not passed yet": "Hosihikari: {0} se ha liberado, pero la verificación de reclamación aún no ha pasado"
+}

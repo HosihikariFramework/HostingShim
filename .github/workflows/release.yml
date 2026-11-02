@@ -119,6 +119,12 @@ jobs:
             'hosihikari-levilamina-windows-x64.zip' = @(
               'plugins/hosihikari/hosihikari.dll',
               'plugins/hosihikari/manifest.json',
+              'plugins/hosihikari/lang/ar.json',
+              'plugins/hosihikari/lang/en.json',
+              'plugins/hosihikari/lang/es.json',
+              'plugins/hosihikari/lang/fr.json',
+              'plugins/hosihikari/lang/ru.json',
+              'plugins/hosihikari/lang/zh_CN.json',
               'sei.json'
             )
             'hosihikari-endstone-windows-x64.zip' = @(

@@ -7,7 +7,8 @@
     Usage: powershell -File smoke-live.ps1 -ServerRoot <server root>
 
     ASCII only: Windows PowerShell 5.1 reads a BOM-less script in the system
-    codepage. The expected Chinese log lines are built from [char] codes.
+    codepage. The expected Chinese log lines are built from [char] codes; the
+    English variants cover runners whose UI culture is not Chinese.
 #>
 param(
     [Parameter(Mandatory = $true)][string]$ServerRoot
@@ -72,8 +73,8 @@ $tookOver = -join ([char]0x5DF2, [char]0x63A5, [char]0x7BA1)
 $checks = @(
     @{ Name = 'server exited cleanly'; Ok = (-not $timedOut -and $serverExit -eq 0) },
     @{ Name = 'carrier loads'; Ok = $text.Contains('hosihikari v') },
-    @{ Name = 'core reports ready'; Ok = $text.Contains($ready) },
-    @{ Name = 'carrier takes over'; Ok = $text.Contains($tookOver) },
+    @{ Name = 'core reports ready'; Ok = ($text.Contains($ready) -or $text.Contains('Hosihikari: Ready; waiting')) },
+    @{ Name = 'carrier takes over'; Ok = ($text.Contains($tookOver) -or $text.Contains('Hosihikari: took over')) },
     @{ Name = 'server starts'; Ok = $text.Contains('Server started') },
     @{ Name = 'server stops'; Ok = ($text.Contains('Server stop requested') -or $text.Contains('Stopping server')) }
 )

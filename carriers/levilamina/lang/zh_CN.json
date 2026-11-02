@@ -1,0 +1,12 @@
+{
+  "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.": "星光框架：无法停用或卸载框架：CLR 已托管进这个进程，.NET 不卸载运行时；放掉本 DLL 会让父级注册表里的插件管理器指向已卸载的代码。要停用框架，请卸载它的插件；要移除框架，请重启服务端。",
+  "Hosihikari: hosting the CLR in the BDS process": "星光框架：正在把 CLR 托管进 BDS 进程",
+  "Hosihikari: startup sequence failed: 0x{0:08X}": "星光框架：启动序列失败：0x{0:08X}",
+  "Hosihikari: could not get the managed core entry points": "星光框架：取不到托管核心入口",
+  "Hosihikari: managed entry returned {0}": "星光框架：托管入口返回 {0}",
+  "Hosihikari: failed to register the plugin manager": "星光框架：注册插件管理器失败",
+  "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line": "星光框架：托管侧拒绝移除出口，故障卸载将只留日志",
+  "Hosihikari: took over; the CLR is ready and the plugin manager is registered": "星光框架：已接管；CLR 就绪，插件管理器已注册",
+  "Hosihikari: failed to load {0}; the reason is in the log": "星光框架：装载 {0} 失败，原因已记进日志",
+  "Hosihikari: {0} has been released, but reclamation verification has not passed yet": "星光框架：{0} 已经放下，但回收验证尚未通过"
+}

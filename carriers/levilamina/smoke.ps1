@@ -54,6 +54,13 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestPath -Encoding UTF8
 Write-Host '== deploying the shim =='
 & (Join-Path $here 'deploy.bat') $ServerRoot | Out-Null
 
+$langDir = Join-Path $ServerRoot 'plugins\hosihikari\lang'
+foreach ($lang in 'ar', 'en', 'es', 'fr', 'ru', 'zh_CN') {
+    if (-not (Test-Path (Join-Path $langDir "$lang.json"))) {
+        throw "carrier language file $lang.json was not deployed"
+    }
+}
+
 $exe = Join-Path $ServerRoot 'bedrock_server_mod.exe'
 if (-not (Test-Path $exe)) { throw "no bedrock_server_mod.exe under $ServerRoot" }
 

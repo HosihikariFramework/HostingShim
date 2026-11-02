@@ -1,0 +1,12 @@
+{
+  "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.": "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at unloaded code. Unload its plugins to stop the framework, or restart the server to remove it.",
+  "Hosihikari: hosting the CLR in the BDS process": "Hosihikari: hosting the CLR in the BDS process",
+  "Hosihikari: startup sequence failed: 0x{0:08X}": "Hosihikari: startup sequence failed: 0x{0:08X}",
+  "Hosihikari: could not get the managed core entry points": "Hosihikari: could not get the managed core entry points",
+  "Hosihikari: managed entry returned {0}": "Hosihikari: managed entry returned {0}",
+  "Hosihikari: failed to register the plugin manager": "Hosihikari: failed to register the plugin manager",
+  "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line": "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line",
+  "Hosihikari: took over; the CLR is ready and the plugin manager is registered": "Hosihikari: took over; the CLR is ready and the plugin manager is registered",
+  "Hosihikari: failed to load {0}; the reason is in the log": "Hosihikari: failed to load {0}; the reason is in the log",
+  "Hosihikari: {0} has been released, but reclamation verification has not passed yet": "Hosihikari: {0} has been released, but reclamation verification has not passed yet"
+}
