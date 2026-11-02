@@ -53,4 +53,4 @@ archives; they are manual workflows.
 
 - Design decisions and terminology are kept by maintainers outside the public repositories; ask for
   the relevant decision when changing lifecycle or public API.
-- [Documentation](https://hf.srcz.one/) — quick start and carrier setup.
+- [Documentation](https://hoshi.srcz.one/) — quick start and carrier setup.

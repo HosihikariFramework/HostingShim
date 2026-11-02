@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Search existing issues and the [documentation](https://hf.srcz.one/) first.
+        Search existing issues and the [documentation](https://hoshi.srcz.one/) first.
   - type: dropdown
     id: carrier
     attributes:
@@ -15,6 +15,7 @@ body:
         - Endstone (Windows)
         - Endstone (Linux)
         - Self-hosted Linux
+        - Self-hosted Windows
     validations:
       required: true
   - type: input
