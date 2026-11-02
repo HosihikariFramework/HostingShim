@@ -16,7 +16,7 @@ APIs; that side is **BindingShim**, produced outside this repository (ADR-0021).
 | | |
 |---|---|
 | `common/` | The startup sequence — **carrier-independent**; every carrier target compiles this same code |
-| `carriers/` | The carrier targets: `levilamina/` (xmake), `endstone/` (CMake, Windows and Linux), and `selfhosted-linux/` (CMake) |
+| `carriers/` | The carrier targets: `levilamina/` (xmake), `endstone/` (CMake, Windows and Linux), `selfhosted-linux/` (CMake), and `selfhosted-windows/` (CMake shim plus a NativeAOT launcher) |
 | `verify/` | Programs and scaffolding that prove the native → managed hop |
 
 nethost headers and libraries are **fetched by version from NuGet**, never committed — both the
@@ -145,6 +145,9 @@ hosihikari-server.exe
 `plugins/hosihikari/hosihikari.dll`, calls its exported entry, and resumes the server. The CLR starts
 in that call, outside the loader lock (ADR-0016); the launcher is the answer to "who loads us in
 production" (ADR-0046). The shim links nethost statically, so there is no `nethost.dll` to deploy.
+
+The launcher is a NativeAOT .NET project (ADR-0047); `build.bat` needs the .NET 10 SDK and an MSVC
+linker, and publishes it next to the shim.
 
 The self-hosted Windows target is BDS 1.21.3.01, the same ceiling as self-hosted Linux (ADR-0001).
 A carrier-only live pass:

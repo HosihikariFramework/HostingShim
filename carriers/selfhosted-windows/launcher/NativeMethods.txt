@@ -1,0 +1,16 @@
+CreateProcess
+VirtualAllocEx
+WriteProcessMemory
+GetModuleHandle
+GetProcAddress
+LoadLibrary
+CreateRemoteThread
+WaitForSingleObject
+GetExitCodeThread
+GetExitCodeProcess
+TerminateProcess
+ResumeThread
+CreateToolhelp32Snapshot
+Module32First
+Module32Next
+SetConsoleCtrlHandler
