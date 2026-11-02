@@ -7,7 +7,7 @@ body:
     attributes:
       label: Page
       description: URL or repository path of the page.
-      placeholder: https://hf.srcz.one/...
+      placeholder: https://hoshi.srcz.one/...
     validations:
       required: true
   - type: textarea
