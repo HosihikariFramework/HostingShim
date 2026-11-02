@@ -20,4 +20,9 @@ if not defined VCVARS (
 cd /d "%~dp0"
 cmake -S . -B build -A x64 || exit /b 1
 cmake --build build --config Release --parallel || exit /b 1
+
+REM The launcher is a NativeAOT .NET project. ILCompiler locates the C++ linker
+REM through vswhere, so keep the installer directory on PATH.
+set "PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer;%PATH%"
+dotnet publish launcher\Hosihikari.SelfHostedLauncher.csproj -c Release -r win-x64 -p:PublishAot=true -o build\Release || exit /b 1
 endlocal

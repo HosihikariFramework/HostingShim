@@ -9,7 +9,7 @@ control to the managed core, and provide the LeviLamina, Endstone, and self-host
 - `carriers/levilamina/` — xmake carrier for LeviLamina.
 - `carriers/endstone/` — CMake carrier for Endstone on Windows and Linux.
 - `carriers/selfhosted-linux/` — CMake carrier and launcher for the self-hosted Linux server.
-- `carriers/selfhosted-windows/` — CMake carrier and injecting launcher for the self-hosted Windows server.
+- `carriers/selfhosted-windows/` — CMake shim and the NativeAOT injecting launcher for the self-hosted Windows server.
 - `verify/` — host-glue, host DLL, and injector checks for the native to managed hop.
 
 ## Build and verify
@@ -34,8 +34,9 @@ archives; they are manual workflows.
 
 ## Invariants
 
-- All carriers build as C++23. LeviLamina headers already use `std::to_underlying`; keep the CMake
-  and xmake standards aligned.
+- Carrier native code builds as C++23. LeviLamina headers already use `std::to_underlying`; keep the
+  CMake and xmake standards aligned. The self-hosted Windows launcher is a NativeAOT .NET project
+  published by `build.bat` next to the shim.
 - Release archives contain native files only. The managed core comes from the PluginManager release
   archive.
 - Every release archive extracts at the server root: LeviLamina writes `plugins/hosihikari/`,

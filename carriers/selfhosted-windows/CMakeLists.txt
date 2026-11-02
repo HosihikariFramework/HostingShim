@@ -48,14 +48,10 @@ set_target_properties(hosihikari PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$
 # 绝对路径是必需的：相对路径会被 CMake 当成库名再补一次 .lib。
 target_link_libraries(hosihikari PRIVATE "${HOSIHIKARI_NETHOST_NATIVE}/libnethost.lib")
 
-# 启动器：挂起启动 bedrock_server.exe，注入垫片，调用导出入口，再放行。
-add_executable(hosihikari-server src/launcher/main.cpp)
-target_compile_definitions(hosihikari-server PRIVATE UNICODE _UNICODE)
+# 启动器是 launcher/ 下的 NativeAOT 项目，由 build.bat 发布到 build/Release。
 
 if(MSVC)
     target_compile_options(hosihikari PRIVATE /utf-8 /W4)
-    target_compile_options(hosihikari-server PRIVATE /utf-8 /W4)
 else()
     target_compile_options(hosihikari PRIVATE -Wall -Wextra)
-    target_compile_options(hosihikari-server PRIVATE -Wall -Wextra)
 endif()

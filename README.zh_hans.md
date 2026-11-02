@@ -14,7 +14,7 @@
 | | |
 |---|---|
 | `common/` | 启动序列 —— **载体无关**，各载体的目标都编这一段 |
-| `carriers/` | 各载体的目标：`levilamina/`（xmake）、`endstone/`（CMake，Windows 与 Linux）与 `selfhosted-linux/`（CMake） |
+| `carriers/` | 各载体的目标：`levilamina/`（xmake）、`endstone/`（CMake，Windows 与 Linux）、`selfhosted-linux/`（CMake）与 `selfhosted-windows/`（CMake 垫片加 NativeAOT 启动器） |
 | `verify/` | 证明「原生 → 托管」这一跳的验证程序与脚手架 |
 
 nethost 的头文件与静态库**按版本从 NuGet 取**，不随仓带二进制 —— 载体与 `verify/` 两处构建各自下载。
@@ -128,6 +128,8 @@ hosihikari-server.exe
 `hosihikari-server.exe` 挂起启动 `bedrock_server.exe`，把 `plugins/hosihikari/hosihikari.dll` 注入进去，
 调用它的导出入口，再恢复运行。CLR 在这次调用里启动，不在 loader lock 下（ADR-0016）；启动器就是
 「生产里谁加载」的答案（ADR-0046）。垫片静态链接 nethost，不需要部署 `nethost.dll`。
+
+启动器是 NativeAOT 的 .NET 项目（ADR-0047）；`build.bat` 需要 .NET 10 SDK 与 MSVC 链接器，并把发布产物放在垫片旁。
 
 自持态 Windows 的目标是 BDS 1.21.3.01，与自持态 Linux 同一个上限（ADR-0001）。只验载体本身的真机路径：
 

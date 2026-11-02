@@ -18,6 +18,11 @@ jobs:
         with:
           path: Shim
 
+      # 自持态 Windows 的启动器是 NativeAOT 项目，构建时要用 .NET SDK。
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
       # 标签与两个载体报出的版本必须是同一个；漂了就在构建前停下。
       - name: 版本一致
         shell: pwsh
