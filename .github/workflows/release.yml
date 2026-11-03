@@ -82,17 +82,26 @@ jobs:
           & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only
           & "$root\Shim\carriers\selfhosted-windows\deploy.ps1" -ServerRoot "$root\stage-selfhosted-windows" -ShimOnly
 
-          # 每个附件根部的 sei.json 是分发元数据；selectors 里的 carrier 指向同名的
+          # 每个附件根部的 sei.json 是分发元数据；artifact.prerequisites 指向同名的
           # bundle sei，rid 区分平台。安装时根级 sei.json 被跳过。
           function Write-Sei([string]$dir, [string]$carrier, [string]$rid) {
             [ordered]@{
-              schemaVersion = 1
+              schemaVersion = 2
               name          = 'hosihikari-hosting'
               version       = $version
               dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[1.2.0,2.0.0)' })
-              selectors     = [ordered]@{ carrier = $carrier; rid = $rid }
-              layout        = 'root'
-            } | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $dir 'sei.json') -Encoding utf8NoBOM
+              prerequisites = @()
+              optionalPeers = @()
+              conflicts     = @()
+              artifact      = [ordered]@{
+                rid           = $rid
+                dependencies  = @()
+                prerequisites = @([ordered]@{ name = $carrier; version = '*' })
+                optionalPeers = @()
+                conflicts     = @()
+                layout        = 'root'
+              }
+            } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $dir 'sei.json') -Encoding utf8NoBOM
           }
 
           Write-Sei "$root\stage-levilamina" 'hosihikari-hosting-levilamina' 'win-x64'
@@ -180,12 +189,21 @@ jobs:
 
           sei() {
             jq -n --arg version "$version" --arg carrier "$1" --arg rid "$2" '{
-              schemaVersion: 1,
+              schemaVersion: 2,
               name: "hosihikari-hosting",
               version: $version,
               dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
-              selectors: { carrier: $carrier, rid: $rid },
-              layout: "root"
+              prerequisites: [],
+              optionalPeers: [],
+              conflicts: [],
+              artifact: {
+                rid: $rid,
+                dependencies: [],
+                prerequisites: [{ name: $carrier, version: "*" }],
+                optionalPeers: [],
+                conflicts: [],
+                layout: "root"
+              }
             }' > "$3"
           }
 
@@ -213,13 +231,22 @@ jobs:
 
           # 启动器要 0755；modes 只写在 zip 根的 sei.json 里，索引条目不携带。
           jq -n --arg version "$version" '{
-            schemaVersion: 1,
+            schemaVersion: 2,
             name: "hosihikari-hosting",
             version: $version,
             dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
-            selectors: { carrier: "hosihikari-hosting-selfhosted", rid: "linux-x64" },
-            layout: "root",
-            modes: { "hosihikari-server": "0755" }
+            prerequisites: [],
+            optionalPeers: [],
+            conflicts: [],
+            artifact: {
+              rid: "linux-x64",
+              dependencies: [],
+              prerequisites: [{ name: "hosihikari-hosting-selfhosted", version: "*" }],
+              optionalPeers: [],
+              conflicts: [],
+              layout: "root",
+              modes: { "hosihikari-server": "0755" }
+            }
           }' > "$root/stage-selfhosted-linux/sei.json"
 
           mkdir -p "$root/out"
@@ -259,8 +286,8 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "${{ github.ref_name }}" --generate-notes
 
-      # 发布后把这一版作为 sei 提交给官方索引：一个版本、五个附件，selectors 里的
-      # carrier 指向同名的 bundle sei。跨仓提交用 SEI_SUBMISSION_TOKEN；没配就跳过。
+      # 发布后把这一版作为 sei 提交给官方索引：一个版本、五个附件，构件的
+      # prerequisites 指向同名的 bundle sei。跨仓提交用 SEI_SUBMISSION_TOKEN；没配就跳过。
       - name: 提交 SeiIndex
         env:
           GH_TOKEN: ${{ secrets.SEI_SUBMISSION_TOKEN }}
@@ -291,7 +318,8 @@ jobs:
             jq -n --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/v$version/hosihikari-$asset.zip" \
                   --arg sha "$sha" --argjson size "$size" \
                   --arg carrier "$carrier" --arg rid "$rid" \
-                  '{ selectors: { carrier: $carrier, rid: $rid }, layout: "root",
+                  '{ rid: $rid, dependencies: [], prerequisites: [{ name: $carrier, version: "*" }],
+                     optionalPeers: [], conflicts: [], layout: "root",
                      source: { url: $url, sha256: $sha, size: $size } }'
           }
 
@@ -305,6 +333,9 @@ jobs:
           entry=$(jq -n --arg version "$version" --argjson artifacts "$artifacts" '{
             version: $version,
             dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+            prerequisites: [],
+            optionalPeers: [],
+            conflicts: [],
             artifacts: $artifacts
           }')
 
