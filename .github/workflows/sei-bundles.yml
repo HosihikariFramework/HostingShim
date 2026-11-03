@@ -1,7 +1,7 @@
 name: sei-bundles
 
 # 载体 bundle：每个包只带一份 sei.json，依赖 hosihikari-hosting。它的名字同时是
-# 附件 selectors 里的 carrier 值 —— 用户只声明一个 bundle 就能选中对应载体。
+# 附件 artifact.prerequisites 里的载体值 —— 用户只声明一个 bundle 就能选中对应载体。
 # 版本不可变，发布后只追加。
 on:
   workflow_dispatch:
@@ -28,11 +28,20 @@ jobs:
             name="hosihikari-hosting-$carrier"
             work=$(mktemp -d)
             jq -n --arg name "$name" --arg version "$VERSION" '{
-              schemaVersion: 1,
+              schemaVersion: 2,
               name: $name,
               version: $version,
               dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
-              layout: "root"
+              prerequisites: [],
+              optionalPeers: [],
+              conflicts: [],
+              artifact: {
+                dependencies: [],
+                prerequisites: [],
+                optionalPeers: [],
+                conflicts: [],
+                layout: "root"
+              }
             }' > "$work/sei.json"
             (cd "$work" && zip -q "$GITHUB_WORKSPACE/out/$name-$VERSION.zip" sei.json)
             rm -rf "$work"
@@ -80,7 +89,13 @@ jobs:
               --arg sha "$sha" --argjson size "$size" '{
                 version: $version,
                 dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
-                artifacts: [{ layout: "root", source: { url: $url, sha256: $sha, size: $size } }]
+                prerequisites: [],
+                optionalPeers: [],
+                conflicts: [],
+                artifacts: [{
+                  dependencies: [], prerequisites: [], optionalPeers: [], conflicts: [],
+                  layout: "root", source: { url: $url, sha256: $sha, size: $size }
+                }]
               }')
             body=$(printf '### Sei name\n\n%s\n\n### Version entry (JSON)\n\n```json\n%s\n```\n' "$name" "$entry")
             gh issue create --repo "$INDEX_REPO" --title "$title" --body "$body"
