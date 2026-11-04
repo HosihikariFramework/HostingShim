@@ -52,5 +52,9 @@ cp -f "$managed"/*.dll "$managed"/*.json "$dst/"
 if compgen -G "$managed/*.pdb" > /dev/null; then
     cp -f "$managed"/*.pdb "$dst/"
 fi
+# The localized resources live in culture subdirectories (zh/).
+for dir in "$managed"/*/; do
+    [ -d "$dir" ] && cp -R "${dir%/}" "$dst/"
+done
 
 echo "deployed to $dst"

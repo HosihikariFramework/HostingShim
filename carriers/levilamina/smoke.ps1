@@ -55,7 +55,7 @@ Write-Host '== deploying the shim =='
 & (Join-Path $here 'deploy.bat') $ServerRoot | Out-Null
 
 $langDir = Join-Path $ServerRoot 'plugins\hosihikari\lang'
-foreach ($lang in 'ar', 'en', 'es', 'fr', 'ru', 'zh_CN') {
+foreach ($lang in 'ar', 'en', 'es', 'fr', 'ru', 'zh') {
     if (-not (Test-Path (Join-Path $langDir "$lang.json"))) {
         throw "carrier language file $lang.json was not deployed"
     }

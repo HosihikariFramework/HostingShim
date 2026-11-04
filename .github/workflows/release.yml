@@ -133,7 +133,7 @@ jobs:
               'plugins/hosihikari/lang/es.json',
               'plugins/hosihikari/lang/fr.json',
               'plugins/hosihikari/lang/ru.json',
-              'plugins/hosihikari/lang/zh_CN.json',
+              'plugins/hosihikari/lang/zh.json',
               'sei.json'
             )
             'hosihikari-endstone-windows-x64.zip' = @(
