@@ -52,7 +52,7 @@ Copy-Item (Join-Path $managed '*.dll') $destination -Force
 Copy-Item (Join-Path $managed '*.json') $destination -Force
 $pdbs = Get-ChildItem $managed -Filter '*.pdb' -ErrorAction SilentlyContinue
 if ($pdbs) { $pdbs | Copy-Item -Destination $destination -Force }
-# 本地化资源在文化子目录（zh-Hans/）里，部署时一起铺。
+# 本地化资源在文化子目录（zh/）里，部署时一起铺。
 Get-ChildItem $managed -Directory | Copy-Item -Destination $destination -Recurse -Force
 
 Write-Host "deployed to $destination"

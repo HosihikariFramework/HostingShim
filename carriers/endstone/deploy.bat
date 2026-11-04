@@ -52,6 +52,8 @@ copy /y "%MANAGED%\*.dll" "%DST%" >nul
 copy /y "%MANAGED%\*.json" "%DST%" >nul
 REM PDBs too: without them the logged stacks carry no file:line.
 copy /y "%MANAGED%\*.pdb" "%DST%" >nul 2>&1
+REM The localized resources live in culture subdirectories (zh/).
+for /d %%d in ("%MANAGED%\*") do xcopy /e /i /y "%%d" "%DST%\%%~nxd" >nul
 
 echo deployed to %~1
 endlocal
