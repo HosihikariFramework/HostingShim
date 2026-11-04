@@ -192,8 +192,8 @@ jobs:
       - uses: actions/checkout@v7
         if: ${{ inputs.source }}
         with:
-          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: McMaster.NETCore.Plugins
+          repository: HosihikariFramework/DotNetCorePlugins
+          path: DotNetCorePlugins
 
       - uses: actions/setup-python@v7
         with:
@@ -304,8 +304,8 @@ jobs:
       - uses: actions/checkout@v7
         if: ${{ inputs.source }}
         with:
-          repository: HosihikariFramework/Hosihikari.McMaster.NETCore.Plugins
-          path: McMaster.NETCore.Plugins
+          repository: HosihikariFramework/DotNetCorePlugins
+          path: DotNetCorePlugins
 
       - uses: actions/setup-dotnet@v6
         if: ${{ inputs.source }}
