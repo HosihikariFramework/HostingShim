@@ -44,4 +44,6 @@ void ManagedPlugin::onDisable() {
     }
 }
 
+void ManagedPlugin::markRemoved() { loaded_ = false; }
+
 }  // namespace hosihikari::shim::endstone_carrier

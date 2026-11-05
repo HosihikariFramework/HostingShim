@@ -28,6 +28,10 @@ public:
     [[nodiscard]] std::vector<endstone::Plugin *> loadPlugins(std::string directory) override;
     [[nodiscard]] std::vector<std::string> getPluginFileFilters() const override;
 
+    /// 把一个已加载的包从父级注册表摘掉并交给托管侧卸载（ADR-0003）。
+    /// 找不到时返回 false —— reload 期间的重复摘除不算错。
+    bool unloadPlugin(std::string const &name);
+
 private:
     ManagedPluginEntries entries_;
 

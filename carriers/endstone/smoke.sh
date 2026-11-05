@@ -64,6 +64,7 @@ grep -q "已接管" "$log" || fail "carrier did not take over the plugin set"
 takeovers=$(grep -c "已接管" "$log" || true)
 [ "$takeovers" -ge 2 ] || fail "carrier did not take over again after reload ($takeovers)"
 grep -q "Enabling hosihikari" "$log" || fail "Endstone did not enable the carrier"
+# The live Linux job installs released archives with no managed plugin, so no removal report is expected here.
 grep -qE "Server stop requested|Stopping server" "$log" || fail "server did not stop cleanly"
 
 if grep -qE "Unhandled exception|Segmentation fault" "$log"; then

@@ -29,6 +29,12 @@ public:
     void onEnable() override;
     void onDisable() override;
 
+    /// 托管侧已经卸掉它（ADR-0003）：之后父级再调启停都不再转发。
+    /// Endstone 没有单条摘除 API，对象留在注册表里直到下一次 clearPlugins。
+    void markRemoved();
+
+    [[nodiscard]] std::string const &name() const { return name_; }
+
     /// 交给托管侧的是**包目录** —— 清单只有一个读者（ADR-0003）。
     void setPackageDirectory(std::string directory) { packageDirectory_ = std::move(directory); }
 
