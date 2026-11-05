@@ -6,31 +6,35 @@
 #include <vector>
 
 #include "endstone/plugin/plugin_loader.h"
-
 #include "managed_plugin.h"
 
-namespace hosihikari::shim::endstone_carrier {
+namespace hosihikari::shim::endstone_carrier
+{
 
 /// 本框架的包目录：`plugins/` 下凡是有 `manifest.json` 且 `type` 为 `hosihikari` 的那些
 /// （ADR-0006）。目录名就是插件名。
-std::vector<std::string> collectPackageDirectories(std::filesystem::path const &pluginsDirectory);
+std::vector<std::string> collectPackageDirectories(const std::filesystem::path& pluginsDirectory);
 
 /// 把托管插件交给 Endstone 的注册表（ADR-0003）：每个子插件以 Endstone 插件的身份存在、
 /// 由 Endstone 调度，我们只做协议转换与后端。
 ///
 /// 与 LeviLamina 载体的一处结构差异：Endstone 的默认 `loadPlugins` 只认**文件**，
 /// 而我们的包是目录，所以这里把它整个覆盖掉。
-class HosihikariPluginLoader final : public endstone::PluginLoader {
+class HosihikariPluginLoader final : public endstone::PluginLoader
+{
 public:
-    HosihikariPluginLoader(endstone::Server &server, ManagedPluginEntries entries);
+    HosihikariPluginLoader(endstone::Server& server, ManagedPluginEntries entries);
 
-    [[nodiscard]] endstone::Plugin *loadPlugin(std::string file) override;
-    [[nodiscard]] std::vector<endstone::Plugin *> loadPlugins(std::string directory) override;
-    [[nodiscard]] std::vector<std::string> getPluginFileFilters() const override;
+    [[nodiscard]]
+    endstone::Plugin* loadPlugin(std::string file) override;
+    [[nodiscard]]
+    std::vector<endstone::Plugin*> loadPlugins(std::string directory) override;
+    [[nodiscard]]
+    std::vector<std::string> getPluginFileFilters() const override;
 
     /// 把一个已加载的包从父级注册表摘掉并交给托管侧卸载（ADR-0003）。
     /// 找不到时返回 false —— reload 期间的重复摘除不算错。
-    bool unloadPlugin(std::string const &name);
+    bool unloadPlugin(const std::string& name);
 
 private:
     ManagedPluginEntries entries_;
@@ -39,4 +43,4 @@ private:
     std::vector<std::unique_ptr<ManagedPlugin>> plugins_;
 };
 
-}  // namespace hosihikari::shim::endstone_carrier
+} // namespace hosihikari::shim::endstone_carrier

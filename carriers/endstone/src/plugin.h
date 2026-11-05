@@ -2,7 +2,8 @@
 
 #include "endstone/plugin/plugin.h"
 
-namespace hosihikari::shim::endstone_carrier {
+namespace hosihikari::shim::endstone_carrier
+{
 
 /// 载体目标：Endstone（ADR-0005 的第二个目标）。
 ///
@@ -12,11 +13,12 @@ namespace hosihikari::shim::endstone_carrier {
 ///   3. 发起一轮自己的加载 —— 父级在调我们之前已经收完了候选，见 onLoad。
 ///
 /// 插件的元数据由 ENDSTONE_PLUGIN 宏给出（见 plugin.cpp）。
-class HosihikariPlugin : public endstone::Plugin {
+class HosihikariPlugin : public endstone::Plugin
+{
 public:
     void onLoad() override;
     void onEnable() override;
     void onDisable() override;
 };
 
-}  // namespace hosihikari::shim::endstone_carrier
+} // namespace hosihikari::shim::endstone_carrier

@@ -6,6 +6,24 @@ on:
   pull_request:
 
 jobs:
+  format:
+    name: C++ 格式
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # 仓库自带的 .clang-format 是标准；漂了就停下并打印 diff。
+      # 版本钉死：发行版自带的 clang-format 认不全新选项，--Werror 会把未知项也算失败。
+      - name: 检查
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/cf"
+          "$RUNNER_TEMP/cf/bin/pip" install --quiet 'clang-format==23.1.4'
+          mapfile -t files < <(
+            find common carriers verify -type f \( -name '*.cpp' -o -name '*.h' \) | grep -v '/build/'
+          )
+          "$RUNNER_TEMP/cf/bin/clang-format" --dry-run --Werror "${files[@]}"
+
   smoke-negative:
     name: 冒烟拒绝非零退出
     runs-on: ubuntu-latest

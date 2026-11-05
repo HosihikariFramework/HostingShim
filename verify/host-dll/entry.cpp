@@ -13,24 +13,28 @@
 #include "dotnet.h"
 
 #if defined(_WIN32)
-    #include <Windows.h>
-    #define SHIM_EXPORT extern "C" __declspec(dllexport)
+#include <Windows.h>
+#define SHIM_EXPORT extern "C" __declspec(dllexport)
 #else
-    #define SHIM_EXPORT extern "C" __attribute__((visibility("default")))
+#define SHIM_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-namespace {
+namespace
+{
 
 // 验证脚手架用的逐点追踪：注入进别人的进程时没有调试器，只能靠它定位崩在哪一步。
 // 载体目标落地时应当换成正式的日志通道。
-void Trace(const char* step) {
+void Trace(const char* step)
+{
     const char* temp = std::getenv("TEMP");
-    if (temp == nullptr) {
+    if (temp == nullptr)
+    {
         return;
     }
 
     std::string path = std::string(temp) + "\\hosihikari-shim-trace.log";
-    if (FILE* file = std::fopen(path.c_str(), "a")) {
+    if (FILE* file = std::fopen(path.c_str(), "a"))
+    {
         std::fprintf(file, "%s\n", step);
         std::fclose(file);
     }
@@ -38,14 +42,17 @@ void Trace(const char* step) {
 
 /// 入参是 UTF-8。Windows 的 char_t 是 wchar_t，要转一次；Linux 上它本来就是 char。
 #if defined(_WIN32)
-std::wstring Widen(const char* utf8) {
-    if (utf8 == nullptr) {
-        return {};
+std::wstring Widen(const char* utf8)
+{
+    if (utf8 == nullptr)
+    {
+        return { };
     }
 
     const int length = ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
-    if (length <= 0) {
-        return {};
+    if (length <= 0)
+    {
+        return { };
     }
 
     std::wstring result(static_cast<size_t>(length), L'\0');
@@ -54,19 +61,22 @@ std::wstring Widen(const char* utf8) {
     return result;
 }
 #else
-std::string Widen(const char* utf8) {
+std::string Widen(const char* utf8)
+{
     return utf8 == nullptr ? std::string() : std::string(utf8);
 }
 #endif
 
-}  // namespace
+} // namespace
 
 /// 加载方在把本模块加载进来之后调用它。参数是核心的输出目录（UTF-8）。返回 0 表示成功。
-SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory) {
+SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory)
+{
     Trace("01 导出已进入");
 
     std::string directory = managedDirectory == nullptr ? std::string() : std::string(managedDirectory);
-    if (!directory.empty() && directory.back() != '/' && directory.back() != '\\') {
+    if (!directory.empty() && directory.back() != '/' && directory.back() != '\\')
+    {
         directory.push_back('/');
     }
 
@@ -77,11 +87,12 @@ SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory) {
     Trace("02 路径已备好");
 
     component_entry_point_fn entry = nullptr;
-    const int code =
-        hosihikari::shim::StartRuntime(configPath.c_str(), assemblyPath.c_str(), typeName.c_str(), methodName.c_str(), &entry);
+    const int code = hosihikari::shim::StartRuntime(
+        configPath.c_str(), assemblyPath.c_str(), typeName.c_str(), methodName.c_str(), &entry);
     Trace("03 启动序列已走完");
 
-    if (code != 0 || entry == nullptr) {
+    if (code != 0 || entry == nullptr)
+    {
         return code != 0 ? code : -1;
     }
 
