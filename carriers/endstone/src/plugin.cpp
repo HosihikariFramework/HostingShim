@@ -8,8 +8,10 @@
 #include "dotnet.h"
 #include "loader.h"
 
-namespace hosihikari::shim::endstone_carrier {
-namespace {
+namespace hosihikari::shim::endstone_carrier
+{
+namespace
+{
 
 /// 父级的日志出口：托管侧的每一行都从这里进 Endstone 的日志器（ADR-0007 的出口一侧）。
 /// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
@@ -20,27 +22,30 @@ namespace {
 endstone::Logger* g_logger = nullptr;
 std::shared_mutex g_loggerMutex;
 
-void logBridge(void* /*user*/, int level, char const* utf8) {
-    std::shared_lock const lock(g_loggerMutex);
-    if (g_logger == nullptr) {
+void logBridge(void* /*user*/, int level, const char* utf8)
+{
+    const std::shared_lock lock(g_loggerMutex);
+    if (g_logger == nullptr)
+    {
         return;
     }
 
-    std::string const message = utf8 == nullptr ? std::string{} : std::string{utf8};
-    switch (level) {
-    case 1:
-        g_logger->info(message);
-        break;
-    case 2:
-        g_logger->warning(message);
-        break;
-    case 3:
-    case 4:
-        g_logger->error(message);
-        break;
-    default:
-        g_logger->debug(message);
-        break;
+    const std::string message = utf8 == nullptr ? std::string { } : std::string { utf8 };
+    switch (level)
+    {
+        case 1:
+            g_logger->info(message);
+            break;
+        case 2:
+            g_logger->warning(message);
+            break;
+        case 3:
+        case 4:
+            g_logger->error(message);
+            break;
+        default:
+            g_logger->debug(message);
+            break;
     }
 }
 
@@ -48,124 +53,139 @@ void logBridge(void* /*user*/, int level, char const* utf8) {
 /// 之后的停用请求不再转发。Endstone 没有单条摘除 API，注册表里的对象留到重启。
 HosihikariPluginLoader* g_loader = nullptr;
 
-void removalBridge(void* /*user*/, char const* nameUtf8) {
-    if (g_loader != nullptr && nameUtf8 != nullptr) {
+void removalBridge(void* /*user*/, const char* nameUtf8)
+{
+    if (g_loader != nullptr && nameUtf8 != nullptr)
+    {
         g_loader->unloadPlugin(nameUtf8);
     }
 
-    std::shared_lock const lock(g_loggerMutex);
-    if (g_logger == nullptr) {
+    const std::shared_lock lock(g_loggerMutex);
+    if (g_logger == nullptr)
+    {
         return;
     }
-    g_logger->warning("{} 已从托管侧移除；Endstone 的注册表要重启才会跟着清掉", nameUtf8 == nullptr ? "（未知）" : nameUtf8);
+    g_logger->warning(
+        "{} 已从托管侧移除；Endstone 的注册表要重启才会跟着清掉", nameUtf8 == nullptr ? "（未知）" : nameUtf8);
 }
 
 /// 三个入口都住在同一个类型上，取法也一样。
-constexpr auto kEntryType =
-    CHARTEXT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
+constexpr auto kEntryType = CHARTEXT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
 
-}  // namespace
+} // namespace
 
-void HosihikariPlugin::onLoad() {
+void HosihikariPlugin::onLoad()
+{
     // 托管核心与 nethost.dll 都住在数据目录里（`plugins/hosihikari/`）——
     // 数据目录由父级按"插件名"给，不用自己去猜模块路径。
-    auto const dataDirectory  = getDataFolder();
-    auto const component      = dataDirectory / CHARTEXT("Hosihikari.PluginManager.dll");
-    auto const runtimeConfig  = dataDirectory / CHARTEXT("Hosihikari.PluginManager.runtimeconfig.json");
+    const auto dataDirectory = getDataFolder();
+    const auto component = dataDirectory / CHARTEXT("Hosihikari.PluginManager.dll");
+    const auto runtimeConfig = dataDirectory / CHARTEXT("Hosihikari.PluginManager.runtimeconfig.json");
 
     {
-        std::unique_lock const lock(g_loggerMutex);
+        const std::unique_lock lock(g_loggerMutex);
         g_logger = &getLogger();
     }
 
     getLogger().info("正在把 CLR 托管进 BDS 进程");
     component_entry_point_fn start = nullptr;
-    if (auto const code = hosihikari::shim::StartRuntime(
+    if (const auto code = hosihikari::shim::StartRuntime(
             runtimeConfig.c_str(),
             component.c_str(),
             kEntryType,
             // 父级态入口：插件集归 Endstone，我们不扫目录（ADR-0003）。
             CHARTEXT("StartUnderParent"),
-            &start
-        );
-        code != 0 || start == nullptr) {
+            &start);
+        code != 0 || start == nullptr)
+    {
         getLogger().error("启动序列失败：0x{:08X}", static_cast<unsigned>(code));
         return;
     }
 
-    auto const fetch = [&](char_t const *method, component_entry_point_fn *slot) {
-        return hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, method, slot);
-    };
+    const auto fetch = [&](const char_t* method, component_entry_point_fn* slot)
+    { return hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, method, slot); };
 
     // 日志出口要在托管入口跑之前交过去。
     component_entry_point_fn setLogSink = nullptr;
-    if (fetch(CHARTEXT("SetLogSink"), &setLogSink) == 0 && setLogSink != nullptr) {
-        struct LogSink {
-            void (*callback)(void*, int, char const*);
+    if (fetch(CHARTEXT("SetLogSink"), &setLogSink) == 0 && setLogSink != nullptr)
+    {
+        struct LogSink
+        {
+            void (*callback)(void*, int, const char*);
             void* user;
         };
-        LogSink sink{&logBridge, nullptr};
+
+        LogSink sink { &logBridge, nullptr };
         setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
     }
 
-    if (auto const managed = start(nullptr, 0); managed != 0) {
+    if (const auto managed = start(nullptr, 0); managed != 0)
+    {
         getLogger().error("托管入口返回 {}", managed);
         return;
     }
 
     // 父级对子插件能做的四件事各要一个入口（ADR-0003）。
-    ManagedPluginEntries entries{};
+    ManagedPluginEntries entries { };
     if (fetch(CHARTEXT("LoadPlugin"), &entries.load) != 0 || fetch(CHARTEXT("UnloadPlugin"), &entries.unload) != 0
         || fetch(CHARTEXT("EnablePlugin"), &entries.enable) != 0
-        || fetch(CHARTEXT("DisablePlugin"), &entries.disable) != 0) {
+        || fetch(CHARTEXT("DisablePlugin"), &entries.disable) != 0)
+    {
         getLogger().error("取不到插件管理入口");
         return;
     }
 
     // reload 时父级会对已经停用过的对象再发一次停用；托管侧那边名字已经放下了（ADR-0037），
     // 要能认出来并放过。
-    auto &manager = getServer().getPluginManager();
+    auto& manager = getServer().getPluginManager();
     auto loader = std::make_unique<HosihikariPluginLoader>(getServer(), entries);
     g_loader = loader.get();
     manager.registerLoader(std::move(loader));
 
     // 故障卸载成功后托管侧回叫这里（ADR-0030）。Endstone 没有单条摘除 API，只记日志并让 loader 停手。
     component_entry_point_fn setRemovalSink = nullptr;
-    if (fetch(CHARTEXT("SetRemovalSink"), &setRemovalSink) == 0 && setRemovalSink != nullptr) {
-        struct RemovalSink {
-            void (*callback)(void*, char const*);
+    if (fetch(CHARTEXT("SetRemovalSink"), &setRemovalSink) == 0 && setRemovalSink != nullptr)
+    {
+        struct RemovalSink
+        {
+            void (*callback)(void*, const char*);
             void* user;
         };
-        RemovalSink sink{&removalBridge, nullptr};
+
+        RemovalSink sink { &removalBridge, nullptr };
         setRemovalSink(reinterpret_cast<char*>(&sink), sizeof(sink));
     }
 
     // 父级已经收完了这一轮的候选（我们是它加载的插件之一），所以新 loader 不会被它回头再问。
     // 这里主动发起一轮只包含我们这些包的加载：按文件名解析会落到刚注册的 loader 上，
     // 它返回托管插件，再由父级自己的依赖图排序、装载。
-    auto const packages = collectPackageDirectories(dataDirectory.parent_path());
-    if (packages.empty()) {
+    const auto packages = collectPackageDirectories(dataDirectory.parent_path());
+    if (packages.empty())
+    {
         getLogger().info("已接管：CLR 就绪，尚无插件");
         return;
     }
 
-    auto const loaded = manager.loadPlugins(packages);
+    const auto loaded = manager.loadPlugins(packages);
     getLogger().info("已接管：CLR 就绪，{} 个插件", loaded.size());
 }
 
-void HosihikariPlugin::onEnable() {
+void HosihikariPlugin::onEnable()
+{
     // 不用做事：托管核心在 onLoad 里就起来了，子插件的启停由父级按自己的节奏驱动。
 }
 
-void HosihikariPlugin::onDisable() {
+void HosihikariPlugin::onDisable()
+{
     // reload 会走这里。先把子插件收回；核心与 Loader 槽位保留，
     // 下一次 onLoad 复用它们、只让新 loader 重新交付子插件。正常关服也走同一条收尾路径。
-    auto const component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
+    const auto component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
     component_entry_point_fn stop = nullptr;
-    if (hosihikari::shim::GetManagedEntry(
-            component.c_str(), kEntryType, CHARTEXT("StopUnderParent"), &stop) == 0
-        && stop != nullptr) {
-        if (stop(nullptr, 0) != 0) {
+    if (hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, CHARTEXT("StopUnderParent"), &stop) == 0
+        && stop != nullptr)
+    {
+        if (stop(nullptr, 0) != 0)
+        {
             getLogger().warning("重载前回收托管核心失败，旧实例可能残留");
         }
     }
@@ -173,22 +193,21 @@ void HosihikariPlugin::onDisable() {
     // 旧 loader 的日志器马上会被 Endstone 销毁。托管侧在 StopUnderParent 里推进日志代次，
     // 之后旧线程的日志不会再进这个回调；这里置空并等已进桥的日志写完，避免用到已销毁的日志器。
     {
-        std::unique_lock const lock(g_loggerMutex);
+        const std::unique_lock lock(g_loggerMutex);
         g_logger = nullptr;
     }
 
     // ADR-0024：停用退不回去 —— CLR 已经在进程里。但 Endstone 的 onDisable 没有失败通道
     // （`void`，不像 LeviLamina 那样能拒绝），所以只能把理由写进日志。
     getLogger().warning(
-        "框架停用做不到：CLR 已经托管进这个进程，.NET 不卸载运行时。要停框架请停用它的插件，要移除它请重启服务端"
-    );
+        "框架停用做不到：CLR 已经托管进这个进程，.NET 不卸载运行时。要停框架请停用它的插件，要移除它请重启服务端");
 }
 
-}  // namespace hosihikari::shim::endstone_carrier
+} // namespace hosihikari::shim::endstone_carrier
 
 ENDSTONE_PLUGIN("hosihikari", "1.2.1", hosihikari::shim::endstone_carrier::HosihikariPlugin)
 {
-    prefix      = "Hosihikari";
+    prefix = "Hosihikari";
     description = "把 CLR 托管进 BDS，并把插件管理交给星光框架核心";
-    authors     = {"星光"};
+    authors = { "星光" };
 }

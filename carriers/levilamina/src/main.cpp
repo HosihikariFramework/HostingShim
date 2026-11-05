@@ -11,64 +11,70 @@
 // 代价就是这个宏加一次包含 —— 头里替换掉本 dll 的全局 new/delete，并导出标记符号
 // ll_memory_operator_overrided，父级扫的正是它。整个 dll 只能有一个源文件这么做。
 #define LL_MEMORY_OPERATORS
-#include "ll/api/memory/MemoryOperators.h"
-
 #include <memory>
 #include <string>
 
+#include "dotnet.h"
 #include "ll/api/i18n/I18n.h"
+#include "ll/api/memory/MemoryOperators.h"
 #include "ll/api/mod/ModManagerRegistry.h"
 #include "ll/api/mod/NativeMod.h"
 #include "ll/api/mod/RegisterHelper.h"
-
-#include "dotnet.h"
 #include "mod_manager.h"
 
 using namespace ll::i18n_literals;
 
-namespace hosihikari::shim::levilamina {
-namespace {
+namespace hosihikari::shim::levilamina
+{
+namespace
+{
 
-class ShimMod {
+class ShimMod
+{
 public:
     bool load();
     bool disable();
     bool unload();
 };
 
-ShimMod& getShim() {
+ShimMod& getShim()
+{
     static ShimMod instance;
     return instance;
 }
 
 /// 父级的日志出口：托管侧的每一行都从这里进父级的日志器（ADR-0007 的出口一侧）。
 /// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
-void logBridge(void* /*user*/, int level, char const* utf8) {
-    auto&             logger  = ll::mod::NativeMod::current()->getLogger();
-    std::string const message = utf8 == nullptr ? std::string{} : std::string{utf8};
+void logBridge(void* /*user*/, int level, const char* utf8)
+{
+    auto& logger = ll::mod::NativeMod::current()->getLogger();
+    const std::string message = utf8 == nullptr ? std::string { } : std::string { utf8 };
 
-    switch (level) {
-    case 1:
-        logger.info(message);
-        break;
-    case 2:
-        logger.warn(message);
-        break;
-    case 3:
-    case 4:
-        logger.error(message);
-        break;
-    default:
-        logger.debug(message);
-        break;
+    switch (level)
+    {
+        case 1:
+            logger.info(message);
+            break;
+        case 2:
+            logger.warn(message);
+            break;
+        case 3:
+        case 4:
+            logger.error(message);
+            break;
+        default:
+            logger.debug(message);
+            break;
     }
 }
 
 /// 故障卸载后托管侧回叫这里：把父级账上的那一条摘掉（ADR-0030）。
 /// user 是 `HosihikariModManager*`，名字是 UTF-8、以 null 结尾。
-void removalBridge(void* user, char const* nameUtf8) {
+void removalBridge(void* user, const char* nameUtf8)
+{
     auto* manager = static_cast<HosihikariModManager*>(user);
-    if (manager == nullptr || nameUtf8 == nullptr) {
+    if (manager == nullptr || nameUtf8 == nullptr)
+    {
         return;
     }
     manager->removeFromParent(nameUtf8);
@@ -76,24 +82,27 @@ void removalBridge(void* user, char const* nameUtf8) {
 
 /// 停用与卸载共用同一条理由。父级把失败原样报给操作者（"The mod cannot be disabled/
 /// unloaded"），原因得由这里补上，否则操作者只看到"不行"。
-bool refuseOffline() {
+bool refuseOffline()
+{
     ll::mod::NativeMod::current()->getLogger().warn(
         "Hosihikari: cannot disable or unload the framework: the CLR is hosted in this process and .NET does not "
         "unload the runtime; releasing this DLL would leave the plugin manager in the parent registry pointing at "
-        "unloaded code. Unload its plugins to stop the framework, or restart the server to remove it."_tr()
-    );
+        "unloaded code. Unload its plugins to stop the framework, or restart the server to remove it."_tr());
     return false;
 }
 
-}  // namespace
-}  // namespace hosihikari::shim::levilamina
+} // namespace
+} // namespace hosihikari::shim::levilamina
 
-namespace hosihikari::shim::levilamina {
+namespace hosihikari::shim::levilamina
+{
 
-bool ShimMod::load() {
+bool ShimMod::load()
+{
     // 本模组的身份由父级给：目录、日志都从它那里取，不自己拿 GetModuleFileName 猜。
     const std::shared_ptr<ll::mod::NativeMod> self = ll::mod::NativeMod::current();
-    if (self == nullptr) {
+    if (self == nullptr)
+    {
         std::printf("[Hosihikari] could not get this mod; load aborted\n");
         return false;
     }
@@ -101,62 +110,67 @@ bool ShimMod::load() {
 
     // 父级给每个 mod 一套语言目录（`<mod>/lang`）；加载失败就按英文键继续，
     // 不因为翻译缺席而拖住宿主。
-    if (auto loaded = ll::i18n::getInstance().load(self->getLangDir()); !loaded) {
+    if (auto loaded = ll::i18n::getInstance().load(self->getLangDir()); !loaded)
+    {
         logger.warn("Hosihikari: failed to load language files; falling back to English");
         loaded.error().log(logger);
     }
 
-    auto const  dir      = self->getModDir();
-    auto const  assembly = dir / L"Hosihikari.PluginManager.dll";
+    const auto dir = self->getModDir();
+    const auto assembly = dir / L"Hosihikari.PluginManager.dll";
     // 三个入口都住在同一个类型上，取法也一样。
     constexpr auto entryType = L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager";
 
     logger.info("Hosihikari: hosting the CLR in the BDS process"_tr());
     component_entry_point_fn start = nullptr;
-    const int                code  = hosihikari::shim::StartRuntime(
+    const int code = hosihikari::shim::StartRuntime(
         (dir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
         assembly.c_str(),
         entryType,
         // 父级态入口：插件由 LeviLamina 按 type 路由过来，我们不扫 plugins/（ADR-0003）。
         L"StartUnderParent",
-        &start
-    );
-    if (code != 0 || start == nullptr) {
+        &start);
+    if (code != 0 || start == nullptr)
+    {
         logger.error("Hosihikari: startup sequence failed: 0x{0:08X}"_tr(static_cast<unsigned>(code)));
         return false;
     }
 
-    auto const fetch = [&](wchar_t const* method, component_entry_point_fn* slot) {
-        return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
-    };
+    const auto fetch = [&](const wchar_t* method, component_entry_point_fn* slot)
+    { return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot); };
 
     // 所有入口在交出日志出口、启动托管核心之前取齐。缺一个就返回，父级销毁失效 mod
     // 时还没有托管回调指向这段代码。
     component_entry_point_fn setLogSink = nullptr;
     component_entry_point_fn setRemovalSink = nullptr;
-    ManagedPluginEntries entries{};
+    ManagedPluginEntries entries { };
     if (fetch(L"SetLogSink", &setLogSink) != 0 || fetch(L"SetRemovalSink", &setRemovalSink) != 0
         || fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
         || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0
-        || setLogSink == nullptr || setRemovalSink == nullptr) {
+        || setLogSink == nullptr || setRemovalSink == nullptr)
+    {
         logger.error("Hosihikari: could not get the managed core entry points"_tr());
         return false;
     }
 
-    struct LogSink {
-        void (*callback)(void*, int, char const*);
+    struct LogSink
+    {
+        void (*callback)(void*, int, const char*);
         void* user;
     };
-    auto const clearLogSink = [&] {
-        LogSink empty{nullptr, nullptr};
+
+    const auto clearLogSink = [&]
+    {
+        LogSink empty { nullptr, nullptr };
         setLogSink(reinterpret_cast<char*>(&empty), sizeof(empty));
     };
 
     // 日志出口要在托管入口跑之前交过去 —— 否则启动那几行还落在它自己的控制台上。
-    LogSink sink{&logBridge, nullptr};
+    LogSink sink { &logBridge, nullptr };
     setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
 
-    if (const int managed = start(nullptr, 0); managed != 0) {
+    if (const int managed = start(nullptr, 0); managed != 0)
+    {
         clearLogSink();
         logger.error("Hosihikari: managed entry returned {0}"_tr(managed));
         return false;
@@ -164,7 +178,8 @@ bool ShimMod::load() {
 
     // 注册进父级注册表 —— 从这里起，本框架的插件由 LeviLamina 调度（ADR-0003）。
     auto manager = std::make_shared<HosihikariModManager>(entries);
-    if (!ll::mod::ModManagerRegistry::getInstance().addManager(manager)) {
+    if (!ll::mod::ModManagerRegistry::getInstance().addManager(manager))
+    {
         clearLogSink();
         logger.error("Hosihikari: failed to register the plugin manager"_tr());
         return false;
@@ -172,25 +187,33 @@ bool ShimMod::load() {
 
     // 故障卸载成功后托管侧回叫这里，把父级账上的那一条摘掉（ADR-0030）。
     // 这个出口缺失不致命：日志仍能工作，只是故障卸载不会摘父级账。
-    struct RemovalSink {
-        void (*callback)(void*, char const*);
+    struct RemovalSink
+    {
+        void (*callback)(void*, const char*);
         void* user;
     };
-    RemovalSink removal{&removalBridge, manager.get()};
-    if (setRemovalSink(reinterpret_cast<char*>(&removal), sizeof(removal)) != 0) {
+
+    RemovalSink removal { &removalBridge, manager.get() };
+    if (setRemovalSink(reinterpret_cast<char*>(&removal), sizeof(removal)) != 0)
+    {
         logger.warn(
-            "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line"_tr()
-        );
+            "Hosihikari: the managed side rejected the removal sink; failed unloads will only leave a log line"_tr());
     }
 
     logger.info("Hosihikari: took over; the CLR is ready and the plugin manager is registered"_tr());
     return true;
 }
 
-bool ShimMod::disable() { return refuseOffline(); }
+bool ShimMod::disable()
+{
+    return refuseOffline();
+}
 
-bool ShimMod::unload() { return refuseOffline(); }
+bool ShimMod::unload()
+{
+    return refuseOffline();
+}
 
-}  // namespace hosihikari::shim::levilamina
+} // namespace hosihikari::shim::levilamina
 
 LL_REGISTER_MOD(hosihikari::shim::levilamina::ShimMod, hosihikari::shim::levilamina::getShim());

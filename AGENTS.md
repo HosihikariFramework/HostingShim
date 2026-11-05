@@ -34,6 +34,10 @@ archives; they are manual workflows.
 
 ## Invariants
 
+- All C++ is formatted with the repo's `.clang-format` (LLVM 18+). Run
+  `clang-format -i` over `common/`, `carriers/*/src/` and `verify/` before committing; CI rejects
+  drift. Include order is fixed by the file: `winsock2.h`, then `windows.h`, then other
+  `.h`-style system headers, then the rest; Win32 SDK headers cannot sort behind `Windows.h`.
 - Carrier native code builds as C++23. LeviLamina headers already use `std::to_underlying`; keep the
   CMake and xmake standards aligned. The self-hosted Windows launcher is a NativeAOT .NET project
   published by `build.bat` next to the shim.
