@@ -64,7 +64,10 @@ grep -q "已接管" "$log" || fail "carrier did not take over the plugin set"
 takeovers=$(grep -c "已接管" "$log" || true)
 [ "$takeovers" -ge 2 ] || fail "carrier did not take over again after reload ($takeovers)"
 grep -q "Enabling hosihikari" "$log" || fail "Endstone did not enable the carrier"
+grep -q "已从托管侧移除" "$log" || fail "the crash fault was not reported as a removal"
 grep -qE "Server stop requested|Stopping server" "$log" || fail "server did not stop cleanly"
+# reload disables names the managed side already dropped; the fixture must not read as not-present (ADR-0037).
+! grep -q "^.*hello: 不在场" "$log" || fail "reload reported the fixture as not present"
 
 if grep -qE "Unhandled exception|Segmentation fault" "$log"; then
     fail "the server died"

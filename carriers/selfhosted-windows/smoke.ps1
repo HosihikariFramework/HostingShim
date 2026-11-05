@@ -5,6 +5,8 @@
 
     Starts through the launcher, asks the server to stop, and checks that the
     CLR came up, the core scanned plugins/, and the server stopped cleanly.
+    ASCII only, like the carrier scripts: Windows PowerShell 5.1 reads a BOM-less
+    script in the system codepage, and non-ASCII bytes corrupt the lines after them.
 #>
 param(
     [Parameter(Mandatory)][string]$ServerRoot,
@@ -61,9 +63,15 @@ function Fail([string]$message) {
     exit 1
 }
 
-if ($text -notmatch '已加载|Loaded \d+ plugin|Chargé \d+|Загружено|Cargados \d+|تم تحميل') { Fail 'core did not scan plugins/' }
+# Phrases are spelled in code points: the file is ASCII, so powershell 5.1 reads it in any codepage.
+$loadedZh = -join ([char]0x5DF2, [char]0x52A0, [char]0x8F7D)
+$loadedFr = -join ([char]0x0043, [char]0x0068, [char]0x0061, [char]0x0072, [char]0x0067, [char]0x00E9)
+$loadedRu = -join ([char]0x0417, [char]0x0430, [char]0x0433, [char]0x0440, [char]0x0443, [char]0x0436, [char]0x0435, [char]0x043D, [char]0x043E)
+$loadedAr = -join ([char]0x062A, [char]0x0645, [char]0x0020, [char]0x062A, [char]0x062D, [char]0x0645, [char]0x064A, [char]0x0644)
+$failedZh = -join ([char]0x5931, [char]0x8D25)
+if ($text -notmatch ($loadedZh + '|Loaded \d+ plugin|' + $loadedFr + ' \d+|' + $loadedRu + '|Cargados \d+|' + $loadedAr)) { Fail 'core did not scan plugins/' }
 if ($text -notmatch 'Starting Server') { Fail 'server did not start' }
-if ($text -match '\[hosihikari\] 失败') { Fail 'the launcher or shim reported a failure' }
+if ($text -match ('\[hosihikari\] ' + $failedZh)) { Fail 'the launcher or shim reported a failure' }
 if ($text -match 'Unhandled exception') { Fail 'the server died' }
 if ($text -notmatch 'Quit correctly') { Fail 'server did not stop cleanly' }
 

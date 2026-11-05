@@ -1,5 +1,6 @@
 #include "loader.h"
 
+#include <algorithm>
 #include <fstream>
 #include <optional>
 #include <utility>
@@ -157,6 +158,19 @@ std::vector<endstone::Plugin *> HosihikariPluginLoader::loadPlugins(std::string 
         }
     }
     return loaded;
+}
+
+bool HosihikariPluginLoader::unloadPlugin(std::string const &name) {
+    // name_ 是清单里的原名，父级看到的是规范化后的形状；两边都规范化再比。
+    auto const key = endstoneName(name);
+    auto const it  = std::ranges::find_if(plugins_, [&key](auto const &plugin) { return endstoneName(plugin->name()) == key; });
+    if (it == plugins_.end()) {
+        return false;
+    }
+
+    // 对象留着：Endstone 的 plugins_ 里是裸指针，抹掉就成了悬垂。
+    (*it)->markRemoved();
+    return true;
 }
 
 std::vector<std::string> HosihikariPluginLoader::getPluginFileFilters() const {

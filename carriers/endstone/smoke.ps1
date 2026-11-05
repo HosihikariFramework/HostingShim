@@ -81,8 +81,8 @@ function Stage-RpcPlugin([string]$Name, [string]$Entry) {
     $package = Join-Path $ServerRoot "plugins\$Name"
     if (Test-Path $package) { Remove-Item $package -Recurse -Force }
     New-Item -ItemType Directory -Path $package | Out-Null
-    Copy-Item (Join-Path $rpc 'bindings\node\hosihikari.mjs') $package
-    Copy-Item (Join-Path $rpc "bindings\node\$Entry") $package
+    Copy-Item (Join-Path $rpc 'protocol\node\hosihikari.mjs') $package
+    Copy-Item (Join-Path $rpc "protocol\node\$Entry") $package
     $command = ConvertTo-Json -Compress -InputObject @($node, './hosihikari.mjs', "./$Entry")
     Write-Manifest (Join-Path $package 'manifest.json') $Name $Entry 'rpc' `
         $command `
@@ -153,13 +153,15 @@ $exitOk = -not $timedOut -and $serverExit -eq 0
 Write-Host ("{0}  server exited cleanly  ({1})" -f $(if ($exitOk) { 'PASS' } else { 'FAIL' }), $(if ($timedOut) { 'timeout' } else { $serverExit }))
 
 $text = Get-Content $log -Raw -Encoding UTF8
-$notSupported = -join ([char]0x4E0D, [char]0x652F, [char]0x6301)  # "不支持"
+# phrase: plugin removed from the managed side
+$removed = -join ([char]0x5DF2, [char]0x4ECE, [char]0x6258, [char]0x7BA1, [char]0x4FA7, [char]0x79FB, [char]0x9664)
+$notPresent = -join ([char]0x4E0D, [char]0x5728, [char]0x573A)    # not-present report
 $helloData = Join-Path $ServerRoot 'data\hosihikari\Hello'
 $checks = @(
     @{ Name = 'carrier loaded';                 Expect = 'Enabling hosihikari' },
     @{ Name = 'plugin log reaches the parent';  Expect = 'hello loaded' },
     @{ Name = 'crash fault reported';           Expect = 'Crash:' },
-    @{ Name = 'removal warned for Endstone';    Expect = ("Endstone " + $notSupported) }
+    @{ Name = 'removal reported';                Expect = $removed }
 )
 foreach ($check in $checks) {
     $ok = $text.Contains($check.Expect)
@@ -167,6 +169,11 @@ foreach ($check in $checks) {
 }
 $takeovers = ([regex]::Matches($text, 'Enabling hosihikari')).Count
 Write-Host ("{0}  reload re-enables carrier  ({1})" -f $(if ($takeovers -ge 2) { 'PASS' } else { 'FAIL' }), $takeovers)
+
+# reload disables names the managed side already dropped; that must not read as not-present (ADR-0037).
+# Only the fixture matters here; a crashed plugin is legitimately gone by the time reload runs.
+$notPresentReports = ([regex]::Matches($text, ('hello: ' + [regex]::Escape($notPresent)))).Count
+Write-Host ("{0}  reload does not report not-present  ({1})" -f $(if ($notPresentReports -eq 0) { 'PASS' } else { 'FAIL' }), $notPresentReports)
 
 function Check-File([string]$Name, [string]$Expected) {
     $path = Join-Path $helloData $Name
@@ -192,7 +199,7 @@ foreach ($bad in @('Unhandled exception', 'Segmentation fault')) {
 }
 
 $logOk = -not ($checks | Where-Object { -not $text.Contains($_.Expect) })
-if (-not $exitOk -or -not $logOk -or $fileChecks -contains $false -or $takeovers -lt 2) {
+if (-not $exitOk -or -not $logOk -or $fileChecks -contains $false -or $takeovers -lt 2 -or $notPresentReports -ne 0) {
     Write-Host "see $log"
     exit 1
 }

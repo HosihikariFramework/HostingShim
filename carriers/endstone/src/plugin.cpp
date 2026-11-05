@@ -44,17 +44,20 @@ void logBridge(void* /*user*/, int level, char const* utf8) {
     }
 }
 
-/// 故障卸载后托管侧回叫这里。Endstone 的 PluginManager 没有单条摘除 API，
-/// 只能记日志：父级账上会保留到重启（ADR-0030）。
+/// 故障卸载后托管侧回叫这里（ADR-0030 / 0037）：告诉 loader 这个插件已经不在托管侧了，
+/// 之后的停用请求不再转发。Endstone 没有单条摘除 API，注册表里的对象留到重启。
+HosihikariPluginLoader* g_loader = nullptr;
+
 void removalBridge(void* /*user*/, char const* nameUtf8) {
+    if (g_loader != nullptr && nameUtf8 != nullptr) {
+        g_loader->unloadPlugin(nameUtf8);
+    }
+
     std::shared_lock const lock(g_loggerMutex);
     if (g_logger == nullptr) {
         return;
     }
-    g_logger->warning(
-        "{} 已从托管侧移除；Endstone 不支持运行期摘除，父级账上会保留到重启",
-        nameUtf8 == nullptr ? "（未知）" : nameUtf8
-    );
+    g_logger->warning("{} 已从托管侧移除；Endstone 的注册表要重启才会跟着清掉", nameUtf8 == nullptr ? "（未知）" : nameUtf8);
 }
 
 /// 三个入口都住在同一个类型上，取法也一样。
@@ -119,10 +122,14 @@ void HosihikariPlugin::onLoad() {
         return;
     }
 
+    // reload 时父级会对已经停用过的对象再发一次停用；托管侧那边名字已经放下了（ADR-0037），
+    // 要能认出来并放过。
     auto &manager = getServer().getPluginManager();
-    manager.registerLoader(std::make_unique<HosihikariPluginLoader>(getServer(), entries));
+    auto loader = std::make_unique<HosihikariPluginLoader>(getServer(), entries);
+    g_loader = loader.get();
+    manager.registerLoader(std::move(loader));
 
-    // 故障卸载成功后托管侧回叫这里（ADR-0030）。Endstone 没有单条摘除 API，只记日志。
+    // 故障卸载成功后托管侧回叫这里（ADR-0030）。Endstone 没有单条摘除 API，只记日志并让 loader 停手。
     component_entry_point_fn setRemovalSink = nullptr;
     if (fetch(CHARTEXT("SetRemovalSink"), &setRemovalSink) == 0 && setRemovalSink != nullptr) {
         struct RemovalSink {
