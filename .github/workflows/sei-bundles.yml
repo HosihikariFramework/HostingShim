@@ -28,10 +28,10 @@ jobs:
             name="hosihikari-hosting-$carrier"
             work=$(mktemp -d)
             jq -n --arg name "$name" --arg version "$VERSION" '{
-              schemaVersion: 2,
+              schemaVersion: 3,
               name: $name,
               version: $version,
-              dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
+              dependencies: [{ name: "hosihikari-hosting", version: "[1.2.2,2.0.0)" }],
               prerequisites: [],
               optionalPeers: [],
               conflicts: [],
@@ -88,7 +88,7 @@ jobs:
               "https://github.com/$GITHUB_REPOSITORY/releases/download/sei-bundles-v$VERSION/$name-$VERSION.zip" \
               --arg sha "$sha" --argjson size "$size" '{
                 version: $version,
-                dependencies: [{ name: "hosihikari-hosting", version: "[1.2.1,2.0.0)" }],
+                dependencies: [{ name: "hosihikari-hosting", version: "[1.2.2,2.0.0)" }],
                 prerequisites: [],
                 optionalPeers: [],
                 conflicts: [],
