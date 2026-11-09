@@ -86,10 +86,10 @@ jobs:
           # bundle sei，rid 区分平台。安装时根级 sei.json 被跳过。
           function Write-Sei([string]$dir, [string]$carrier, [string]$rid) {
             [ordered]@{
-              schemaVersion = 2
+              schemaVersion = 3
               name          = 'hosihikari-hosting'
               version       = $version
-              dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[1.2.0,2.0.0)' })
+              dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[1.3.0,2.0.0)' })
               prerequisites = @()
               optionalPeers = @()
               conflicts     = @()
@@ -189,10 +189,10 @@ jobs:
 
           sei() {
             jq -n --arg version "$version" --arg carrier "$1" --arg rid "$2" '{
-              schemaVersion: 2,
+              schemaVersion: 3,
               name: "hosihikari-hosting",
               version: $version,
-              dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+              dependencies: [{ name: "hosihikari", version: "[1.3.0,2.0.0)" }],
               prerequisites: [],
               optionalPeers: [],
               conflicts: [],
@@ -231,10 +231,10 @@ jobs:
 
           # 启动器要 0755；modes 只写在 zip 根的 sei.json 里，索引条目不携带。
           jq -n --arg version "$version" '{
-            schemaVersion: 2,
+            schemaVersion: 3,
             name: "hosihikari-hosting",
             version: $version,
-            dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+            dependencies: [{ name: "hosihikari", version: "[1.3.0,2.0.0)" }],
             prerequisites: [],
             optionalPeers: [],
             conflicts: [],
@@ -332,7 +332,7 @@ jobs:
 
           entry=$(jq -n --arg version "$version" --argjson artifacts "$artifacts" '{
             version: $version,
-            dependencies: [{ name: "hosihikari", version: "[1.2.0,2.0.0)" }],
+            dependencies: [{ name: "hosihikari", version: "[1.3.0,2.0.0)" }],
             prerequisites: [],
             optionalPeers: [],
             conflicts: [],
