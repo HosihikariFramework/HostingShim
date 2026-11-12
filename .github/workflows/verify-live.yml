@@ -7,11 +7,11 @@ on:
       endstone_bds_version:
         description: 'BDS version for Endstone'
         required: true
-        default: '1.26.52.3'
+        default: '1.26.60.6'
       levilamina_bds_version:
         description: 'BDS version for LeviLamina'
         required: true
-        default: '1.26.51.1'
+        default: '1.26.60.6'
       selfhosted_bds_version:
         description: 'BDS version for self-hosted Linux'
         required: true
@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           python -m venv "$env:RUNNER_TEMP\endstone-venv"
-          & "$env:RUNNER_TEMP\endstone-venv\Scripts\python.exe" -m pip install --quiet endstone==0.11.14
+          & "$env:RUNNER_TEMP\endstone-venv\Scripts\python.exe" -m pip install --quiet endstone==0.11.15
           "ENDSTONE_EXE=$env:RUNNER_TEMP\endstone-venv\Scripts\endstone.exe" `
             | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
@@ -151,7 +151,7 @@ jobs:
             $core = (gh release list --repo HosihikariFramework/PluginManager --limit 50 --json tagName --jq '[.[] | select(.tagName | test("^v[0-9]"))][0].tagName') -replace '^v', ''
           }
           Set-Location $env:SERVER
-          lip install github.com/LiteLDev/LeviLamina@26.51.9
+          lip install github.com/LiteLDev/LeviLamina@26.60.6
           Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/HostingShim/releases/download/v$shim/hosihikari-levilamina-windows-x64.zip" -OutFile "$env:RUNNER_TEMP\shim.zip"
           Expand-Archive -Path "$env:RUNNER_TEMP\shim.zip" -DestinationPath $env:SERVER -Force
           Invoke-WebRequest -Uri "https://github.com/HosihikariFramework/PluginManager/releases/download/v$core/hosihikari-core-$core.zip" -OutFile "$env:RUNNER_TEMP\core.zip"
@@ -220,7 +220,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m venv "$RUNNER_TEMP/endstone-venv"
-          "$RUNNER_TEMP/endstone-venv/bin/pip" install --quiet endstone==0.11.14
+          "$RUNNER_TEMP/endstone-venv/bin/pip" install --quiet endstone==0.11.15
           echo "ENDSTONE_EXE=$RUNNER_TEMP/endstone-venv/bin/endstone" >> "$GITHUB_ENV"
 
       - name: Clang 与 libc++
