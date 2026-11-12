@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Change this to the Endstone version you are targeting (ADR-0005: 每个载体用它所属生态的构建).
-set(ENDSTONE_API_VERSION "0.11" CACHE STRING "Endstone API version")
+set(ENDSTONE_API_VERSION "0.11.15" CACHE STRING "Endstone API version")
 
 include(FetchContent)
 

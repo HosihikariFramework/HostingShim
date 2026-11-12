@@ -4,7 +4,7 @@
 add_rules("mode.debug", "mode.release")
 
 add_repositories("liteldev-repo https://github.com/LiteLDev/xmake-repo.git")
-add_requires("levilamina")
+add_requires("levilamina 26.60.6")
 add_requires("levibuildscript")
 
 -- LeviLamina 的 mod 用 /MD，随 SDK 的 libnethost.lib 是 /MT，两者不能混（LNK2038）。
