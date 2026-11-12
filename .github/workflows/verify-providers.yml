@@ -125,3 +125,43 @@ jobs:
           $shared = Get-ChildItem -Path plugins/hosihikari-csharp,plugins/hosihikari-fsharp,plugins/hosihikari-rpc -Recurse -Filter Hosihikari.Plugin.Abstractions.dll
           if ($shared) { throw 'a loader package contains the shared contract' }
           Get-ChildItem -Path plugins -Recurse -File | ForEach-Object { $_.FullName }
+
+  # Seiko 安装路径：走官方索引解析版本与依赖，而不是直接下载归档。版本由索引决定，
+  # 所以这里没有版本参数。
+  seiko:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 安装 sk
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/Hosihikari/Seiko/releases/latest/download/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Seiko 安装
+        run: |
+          set -euo pipefail
+          install="$RUNNER_TEMP/install"
+          mkdir -p "$install"
+          cd "$install"
+          sk init
+          sk add hosihikari-csharp hosihikari-fsharp hosihikari-rpc
+          sk list
+          sk doctor
+
+      - name: 检查落盘
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/install"
+          test -f plugins/hosihikari/Hosihikari.PluginManager.dll
+          test -f plugins/hosihikari-csharp/Hosihikari.PluginLoader.CSharp.dll
+          test -f plugins/hosihikari-fsharp/Hosihikari.PluginLoader.FSharp.dll
+          test -f plugins/hosihikari-rpc/Hosihikari.PluginLoader.Rpc.dll
+          test "$(jq -r .name plugins/hosihikari-csharp/manifest.json)" = hosihikari-csharp
+          test "$(jq -r .name plugins/hosihikari-fsharp/manifest.json)" = hosihikari-fsharp
+          test "$(jq -r .name plugins/hosihikari-rpc/manifest.json)" = hosihikari-rpc
+          if find plugins/hosihikari-csharp plugins/hosihikari-fsharp plugins/hosihikari-rpc \
+              -name 'Hosihikari.Plugin.Abstractions.dll' | grep -q .; then
+            echo 'a loader package contains the shared contract' >&2
+            exit 1
+          fi
+          find plugins -maxdepth 2 -type f | sort
