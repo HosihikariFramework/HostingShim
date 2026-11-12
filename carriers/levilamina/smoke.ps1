@@ -54,7 +54,7 @@ $manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestPath -Encoding UTF8
 Write-Host '== deploying the shim =='
 & (Join-Path $here 'deploy.bat') $ServerRoot | Out-Null
 
-$langDir = Join-Path $ServerRoot 'plugins\hosihikari\lang'
+$langDir = Join-Path $ServerRoot 'mods\hosihikari\lang'
 foreach ($lang in 'ar', 'en', 'es', 'fr', 'ru', 'zh') {
     if (-not (Test-Path (Join-Path $langDir "$lang.json"))) {
         throw "carrier language file $lang.json was not deployed"
