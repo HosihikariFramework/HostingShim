@@ -18,7 +18,7 @@ set "HERE=%~dp0"
 set "MANAGED=%HERE%..\..\..\PluginManager\src\bin\Release\net10.0"
 set "PACKED=%HERE%bin\%MODNAME%"
 set "NETHOST=%HERE%build\nethost\runtimes\win-x64\native\nethost.dll"
-set "DST=%~1\plugins\%MODNAME%"
+set "DST=%~1\mods\%MODNAME%"
 
 if not exist "%PACKED%\%MODNAME%.dll" (
     echo run build.bat first

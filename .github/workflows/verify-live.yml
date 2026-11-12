@@ -158,7 +158,8 @@ jobs:
           Expand-Archive -Path "$env:RUNNER_TEMP\core.zip" -DestinationPath $env:SERVER -Force
           if (-not (Test-Path 'bedrock_server_mod.exe')) { throw 'LeviLamina did not produce bedrock_server_mod.exe' }
           if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
-          if (-not (Test-Path 'plugins/hosihikari/lang/en.json')) { throw 'the carrier language files are missing' }
+          if (-not (Test-Path 'mods/hosihikari/hosihikari.dll')) { throw 'the carrier dll is missing' }
+          if (-not (Test-Path 'mods/hosihikari/lang/en.json')) { throw 'the carrier language files are missing' }
 
       - name: 冒烟
         shell: pwsh

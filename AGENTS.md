@@ -43,7 +43,7 @@ archives; they are manual workflows.
   published by `build.bat` next to the shim.
 - Release archives contain native files only. The managed core comes from the PluginManager release
   archive.
-- Every release archive extracts at the server root: LeviLamina writes `plugins/hosihikari/`,
+- Every release archive extracts at the server root: LeviLamina writes `mods/hosihikari/`,
   Endstone Windows writes `plugins/hosihikari.dll` and `nethost.dll`, Endstone Linux writes
   `plugins/hosihikari.so` and `plugins/libnethost.so`, self-hosted Linux writes
   `hosihikari-server` and `plugins/hosihikari/`, and self-hosted Windows writes
