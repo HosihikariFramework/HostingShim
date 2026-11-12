@@ -123,8 +123,7 @@ bool ShimMod::load()
     auto coreDir = dir;
     if (!std::filesystem::exists(coreDir / L"Hosihikari.PluginManager.dll"))
     {
-        const auto shared =
-            std::filesystem::absolute(dir.parent_path().parent_path() / L"plugins" / L"hosihikari");
+        const auto shared = std::filesystem::absolute(dir.parent_path().parent_path() / L"plugins" / L"hosihikari");
         if (std::filesystem::exists(shared / L"Hosihikari.PluginManager.dll"))
         {
             coreDir = shared;
