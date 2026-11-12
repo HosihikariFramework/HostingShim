@@ -11,6 +11,7 @@
 // 代价就是这个宏加一次包含 —— 头里替换掉本 dll 的全局 new/delete，并导出标记符号
 // ll_memory_operator_overrided，父级扫的正是它。整个 dll 只能有一个源文件这么做。
 #define LL_MEMORY_OPERATORS
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -116,15 +117,26 @@ bool ShimMod::load()
         loaded.error().log(logger);
     }
 
+    // LeviLamina 26.60 起把 mods 根换成 `./mods`（PreLoaderConfig），而共享的核心归档仍铺在
+    // `plugins/hosihikari`：优先用与模组同目录的核心，找不到就回退到那里。
     const auto dir = self->getModDir();
-    const auto assembly = dir / L"Hosihikari.PluginManager.dll";
+    auto coreDir = dir;
+    if (!std::filesystem::exists(coreDir / L"Hosihikari.PluginManager.dll"))
+    {
+        const auto shared = std::filesystem::absolute(dir.parent_path().parent_path() / L"plugins" / L"hosihikari");
+        if (std::filesystem::exists(shared / L"Hosihikari.PluginManager.dll"))
+        {
+            coreDir = shared;
+        }
+    }
+    const auto assembly = coreDir / L"Hosihikari.PluginManager.dll";
     // 三个入口都住在同一个类型上，取法也一样。
     constexpr auto entryType = L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager";
 
     logger.info("Hosihikari: hosting the CLR in the BDS process"_tr());
     component_entry_point_fn start = nullptr;
     const int code = hosihikari::shim::StartRuntime(
-        (dir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
+        (coreDir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
         assembly.c_str(),
         entryType,
         // 父级态入口：插件由 LeviLamina 按 type 路由过来，我们不扫 plugins/（ADR-0003）。

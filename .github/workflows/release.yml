@@ -111,7 +111,7 @@ jobs:
           # tar 就是 bsdtar：-a 按扩展名压缩，-C 换目录后按名字收条目，
           # 这样 zip 顶层不会多出一层 ./ 或目录名。
           & tar -a -c -f "$out\hosihikari-levilamina-windows-x64.zip" `
-                -C "$root\stage-levilamina" plugins sei.json
+                -C "$root\stage-levilamina" mods sei.json
           if ($LASTEXITCODE -ne 0) { throw 'packaging the LeviLamina variant failed' }
 
           # Endstone 那份只带原生插件与 nethost；托管核心由独立 Core 附件落盘。
@@ -126,14 +126,14 @@ jobs:
 
           $expected = @{
             'hosihikari-levilamina-windows-x64.zip' = @(
-              'plugins/hosihikari/hosihikari.dll',
-              'plugins/hosihikari/manifest.json',
-              'plugins/hosihikari/lang/ar.json',
-              'plugins/hosihikari/lang/en.json',
-              'plugins/hosihikari/lang/es.json',
-              'plugins/hosihikari/lang/fr.json',
-              'plugins/hosihikari/lang/ru.json',
-              'plugins/hosihikari/lang/zh.json',
+              'mods/hosihikari/hosihikari.dll',
+              'mods/hosihikari/manifest.json',
+              'mods/hosihikari/lang/ar.json',
+              'mods/hosihikari/lang/en.json',
+              'mods/hosihikari/lang/es.json',
+              'mods/hosihikari/lang/fr.json',
+              'mods/hosihikari/lang/ru.json',
+              'mods/hosihikari/lang/zh.json',
               'sei.json'
             )
             'hosihikari-endstone-windows-x64.zip' = @(

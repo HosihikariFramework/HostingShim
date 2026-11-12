@@ -21,7 +21,7 @@ int deliver(component_entry_point_fn entry, const std::string& text)
 
 /// 交给托管侧的是**包目录** —— 清单只有一个读者，由它自己读（ADR-0003）。
 ///
-/// 必须做成绝对路径：父级的 mods 根是相对的（`./plugins`），而托管侧把它交给
+/// 必须做成绝对路径：父级的 mods 根是相对的（`./mods`），而托管侧把它交给
 /// McMaster 之类按绝对路径办事的库时会直接抛异常。这类账已经在基目录上还过一次。
 std::string packageDirectory(const std::string& name)
 {
