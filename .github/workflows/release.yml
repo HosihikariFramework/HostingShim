@@ -229,7 +229,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           "$root/Shim/carriers/selfhosted-linux/deploy.sh" "$root/stage-selfhosted-linux" shim-only
 
-          # 启动器要 0755；modes 只写在 zip 根的 sei.json 里，索引条目不携带。
+          # 启动器要 0755；modes 同时写进 zip 根的 sei.json 与索引条目，两边交叉校验。
           jq -n --arg version "$version" '{
             schemaVersion: 3,
             name: "hosihikari-hosting",
@@ -310,24 +310,25 @@ jobs:
           fi
 
           artifact() {
-            local asset="$1" carrier="$2" rid="$3"
+            local asset="$1" carrier="$2" rid="$3" modes="${4:-}"
             local file="out/hosihikari-$asset.zip"
             local sha size
             sha=$(sha256sum "$file" | cut -d' ' -f1)
             size=$(wc -c < "$file")
             jq -n --arg url "https://github.com/$GITHUB_REPOSITORY/releases/download/v$version/hosihikari-$asset.zip" \
                   --arg sha "$sha" --argjson size "$size" \
-                  --arg carrier "$carrier" --arg rid "$rid" \
+                  --arg carrier "$carrier" --arg rid "$rid" --arg modes "$modes" \
                   '{ rid: $rid, dependencies: [], prerequisites: [{ name: $carrier, version: "*" }],
                      optionalPeers: [], conflicts: [], layout: "root",
-                     source: { url: $url, sha256: $sha, size: $size } }'
+                     source: { url: $url, sha256: $sha, size: $size } }
+                   + (if $modes == "" then {} else { modes: ($modes | fromjson) } end)'
           }
 
           artifacts=$(jq -s '.' \
             <(artifact levilamina-windows-x64 hosihikari-hosting-levilamina win-x64) \
             <(artifact endstone-windows-x64 hosihikari-hosting-endstone win-x64) \
             <(artifact endstone-linux-x64 hosihikari-hosting-endstone linux-x64) \
-            <(artifact selfhosted-linux-x64 hosihikari-hosting-selfhosted linux-x64) \
+            <(artifact selfhosted-linux-x64 hosihikari-hosting-selfhosted linux-x64 '{"hosihikari-server":"0755"}') \
             <(artifact selfhosted-windows-x64 hosihikari-hosting-selfhosted win-x64))
 
           entry=$(jq -n --arg version "$version" --argjson artifacts "$artifacts" '{
