@@ -48,7 +48,8 @@ jobs:
           curl -fsSL "$base/FSharpLoader/releases/download/v$FSHARP/hosihikari-fsharp-$FSHARP.zip" -o "$RUNNER_TEMP/fsharp.zip"
           curl -fsSL "$base/RpcLoader/releases/download/v$RPC/hosihikari-rpc-$RPC.zip" -o "$RUNNER_TEMP/rpc.zip"
           for zip in core shim csharp fsharp rpc; do
-            unzip -q "$RUNNER_TEMP/$zip.zip" -d "$install"
+            # Every archive carries a sei.json at its root; overwrite like Expand-Archive -Force.
+            unzip -qo "$RUNNER_TEMP/$zip.zip" -d "$install"
           done
 
       - name: 检查落盘
