@@ -99,7 +99,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const int managed = entry(nullptr, 0);
+    const int managed = hosihikari::shim::InvokeStart(entry, nullptr, nullptr);
     if (!Report("调托管入口", managed))
     {
         return 1;

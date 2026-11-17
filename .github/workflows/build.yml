@@ -84,16 +84,20 @@ jobs:
         with:
           repository: HosihikariFramework/PluginManager
           path: PluginManager
+          # 跨仓并列检出：v2 期钉同名分支，其余跟 PR 目标分支（ADR-0059）。
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginAbstractions
           path: Plugin.Abstractions
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/DotNetCorePlugins
           path: DotNetCorePlugins
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -122,6 +126,7 @@ jobs:
           test -f "$stage/plugins/libnethost.so"
           test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.dll"
           test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.runtimeconfig.json"
+          test -f "$stage/plugins/hosihikari/hosihikari.json"
 
   carrier-selfhosted-windows:
     name: 自持态（Windows）
@@ -143,7 +148,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $stage = Join-Path $env:RUNNER_TEMP 'stage-selfhosted-windows'
           & carriers\selfhosted-windows\deploy.ps1 -ServerRoot $stage -ShimOnly
-          foreach ($file in @('hosihikari-server.exe', 'plugins/hosihikari/hosihikari.dll')) {
+          foreach ($file in @('hosihikari-server.exe', 'plugins/hosihikari/hosihikari.dll', 'plugins/hosihikari/hosihikari.json')) {
             if (-not (Test-Path (Join-Path $stage $file))) { throw "missing $file" }
           }
 
@@ -159,16 +164,20 @@ jobs:
         with:
           repository: HosihikariFramework/PluginManager
           path: PluginManager
+          # 跨仓并列检出：v2 期钉同名分支，其余跟 PR 目标分支（ADR-0059）。
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/PluginAbstractions
           path: Plugin.Abstractions
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/checkout@v7
         with:
           repository: HosihikariFramework/DotNetCorePlugins
           path: DotNetCorePlugins
+          ref: ${{ github.head_ref == 'v2' && 'v2' || github.base_ref || github.ref_name }}
 
       - uses: actions/setup-dotnet@v6
         with:
@@ -188,6 +197,7 @@ jobs:
           test -f "$stage/plugins/hosihikari/libhosihikari.so"
           test -f "$stage/plugins/hosihikari/libnethost.so"
           test -f "$stage/plugins/hosihikari/Hosihikari.PluginManager.dll"
+          test -f "$stage/plugins/hosihikari/hosihikari.json"
           test -x "$stage/hosihikari-server"
 
   # 载体这一步照官方模版（LiteLDev/levilamina-mod-template）的做法来：
@@ -223,3 +233,11 @@ jobs:
       - name: 语言目录
         shell: pwsh
         run: pwsh -File carriers/levilamina/check-lang.ps1
+
+      # deploy 的落点与载体清单同样不等打标签才发现。
+      - name: 装配
+        shell: cmd
+        run: |
+          carriers\levilamina\deploy.bat "%RUNNER_TEMP%\stage-levilamina" shim-only
+          if not exist "%RUNNER_TEMP%\stage-levilamina\mods\hosihikari\hosihikari.json" exit /b 1
+          if not exist "%RUNNER_TEMP%\stage-levilamina\mods\hosihikari\hosihikari.dll" exit /b 1

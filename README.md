@@ -34,7 +34,7 @@ carriers\levilamina\deploy.bat <server root>
 `build.bat` finds vcvars through `vswhere` and puts clang-cl on the path. On networks that need a
 proxy, set `https_proxy` first — the script leaves that to the caller. The artifact and its manifest
 are placed in `bin/hosihikari/` by the upstream `@levibuildscript/modpacker` rule; `deploy.bat` then
-copies them, the managed core and `nethost.dll` into `plugins/hosihikari/`.
+copies them and `nethost.dll` into `mods/hosihikari/`; the managed core stays in `plugins/hosihikari/`.
 
 A full live pass — start the server, drive `show`/`disable`/`enable`/`unload`/`load`, then check the
 log:
@@ -203,7 +203,7 @@ download:
 | Asset | What it installs |
 |---|---|
 | `hosihikari-selfhosted-linux-x64.zip` | Self-hosted Linux: `hosihikari-server` at the server root and the native shim into `plugins/hosihikari/`; run `chmod +x hosihikari-server` after extracting |
-| `hosihikari-levilamina-windows-x64.zip` | LeviLamina: the native carrier into `plugins/hosihikari/`; install LeviLamina and the Core archive alongside it |
+| `hosihikari-levilamina-windows-x64.zip` | LeviLamina: the native carrier into `mods/hosihikari/`; install LeviLamina and the Core archive alongside it |
 | `hosihikari-endstone-windows-x64.zip` | Endstone Windows: `plugins/hosihikari.dll` and `nethost.dll` at the server root |
 | `hosihikari-endstone-linux-x64.zip` | Endstone Linux: `plugins/hosihikari.so` and `plugins/libnethost.so` |
 | `hosihikari-selfhosted-windows-x64.zip` | Self-hosted Windows: `hosihikari-server.exe` at the server root and the native shim into `plugins/hosihikari/`; start the server through the launcher |

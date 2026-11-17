@@ -38,6 +38,25 @@ int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath);
 int GetManagedEntry(
     const char_t* assemblyPath, const char_t* typeName, const char_t* methodName, component_entry_point_fn* entryPoint);
 
+/// 启动参数（ADR-0065）：载体包目录与不透明的宿主句柄。
+///
+/// - `carrierDirectory`：UTF-8 的载体包目录（含 `hosihikari.json`），可为空。托管侧在调用期内复制。
+/// - `host`：载体自己的原生句柄（例如 Endstone 的 `Plugin*`），可为空；解释它的是载体包的托管侧。
+///
+/// 两侧布局必须一致：`{ const char* carrierDirectory; void* host; }`。
+struct StartArgs
+{
+    const char* carrierDirectory;
+    void* host;
+};
+
+/// 按契约 2 调托管启动入口：参数块就是上面的结构。
+inline int InvokeStart(component_entry_point_fn entry, const char* carrierDirectory, void* host)
+{
+    StartArgs args { carrierDirectory, host };
+    return entry(&args, static_cast<int>(sizeof(args)));
+}
+
 /// 把启动序列一次走完。任一步失败即返回它的错误码，不继续。
 /// 核心缺少契约版本入口时返回 -2；版本与垫片不一致时返回 -3。
 int StartRuntime(

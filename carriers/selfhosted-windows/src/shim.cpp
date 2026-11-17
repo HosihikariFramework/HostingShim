@@ -103,7 +103,11 @@ extern "C" __declspec(dllexport) int HosihikariShimStart(const char* managedDire
         return code != 0 ? code : -3;
     }
 
-    const int managed = entry(nullptr, 0);
+    // 载体包目录按 UTF-8 交过去（契约 2 的形状是窄字符，ADR-0065）。
+    const int carrierBytes = ::WideCharToMultiByte(CP_UTF8, 0, directory.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    std::string carrierDirectory(static_cast<size_t>(carrierBytes) - 1, '\0');
+    ::WideCharToMultiByte(CP_UTF8, 0, directory.c_str(), -1, carrierDirectory.data(), carrierBytes, nullptr, nullptr);
+    const int managed = hosihikari::shim::InvokeStart(entry, carrierDirectory.c_str(), nullptr);
     if (managed != 0)
     {
         Fail("托管入口返回", managed);
