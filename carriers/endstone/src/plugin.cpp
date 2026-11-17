@@ -123,8 +123,7 @@ void HosihikariPlugin::onLoad()
     // 它按投影定义的键注册进 CarrierServices（ADR-0064）。
     const auto carrierUtf8 = dataDirectory.u8string();
     const std::string carrierDirectory { carrierUtf8.begin(), carrierUtf8.end() };
-    if (const auto managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), this);
-        managed != 0)
+    if (const auto managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), this); managed != 0)
     {
         getLogger().error("托管入口返回 {}", managed);
         return;
