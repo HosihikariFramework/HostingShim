@@ -41,15 +41,19 @@ archives; they are manual workflows.
 - Carrier native code builds as C++23. LeviLamina headers already use `std::to_underlying`; keep the
   CMake and xmake standards aligned. The self-hosted Windows launcher is a NativeAOT .NET project
   published by `build.bat` next to the shim.
-- Release archives contain native files only. The managed core comes from the PluginManager release
-  archive.
+- Release archives contain native files plus the carrier manifest (`hosihikari.json`). The managed
+  core comes from the PluginManager release archive; carrier components and the service configurator
+  are declared in the manifest and ship with the carrier.
 - Every release archive extracts at the server root: LeviLamina writes `mods/hosihikari/`,
-  Endstone Windows writes `plugins/hosihikari.dll` and `nethost.dll`, Endstone Linux writes
-  `plugins/hosihikari.so` and `plugins/libnethost.so`, self-hosted Linux writes
+  Endstone Windows writes `plugins/hosihikari.dll`, `plugins/hosihikari/hosihikari.json` and
+  `nethost.dll`, Endstone Linux writes `plugins/hosihikari.so`,
+  `plugins/hosihikari/hosihikari.json` and `plugins/libnethost.so`, self-hosted Linux writes
   `hosihikari-server` and `plugins/hosihikari/`, and self-hosted Windows writes
   `hosihikari-server.exe` and `plugins/hosihikari/`.
 - The self-hosted Windows shim links nethost statically: the archive carries no `nethost.dll`.
-- The hosting contract version is 1. Apply carrier-specific changes to every affected carrier.
+- The hosting contract version is 2: `Start`/`StartUnderParent` take
+  `{ const char* carrierDirectory; void* host; }` (ADR-0065). Apply carrier-specific changes to every
+  affected carrier.
 - The LeviLamina carrier loads operator messages from `plugins/hosihikari/lang/*.json` through
   `ll::i18n`; `deploy.bat` and the release archive must carry all six catalogs.
 - Do not commit build trees, downloaded SDKs, or server roots.

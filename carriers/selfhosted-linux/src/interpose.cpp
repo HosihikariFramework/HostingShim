@@ -59,7 +59,9 @@ void StartSelfHosted()
             return;
         }
 
-        const int managed = start(nullptr, 0);
+        const auto directoryUtf8 = directory.u8string();
+        const std::string carrierDirectory { directoryUtf8.begin(), directoryUtf8.end() };
+        const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr);
         if (managed != 0)
         {
             std::fprintf(stderr, "[hosihikari] 托管入口返回 %d\n", managed);

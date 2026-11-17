@@ -10,7 +10,8 @@
 #>
 param(
     [Parameter(Mandatory)][string]$ServerRoot,
-    [switch]$ShimOnly
+    [switch]$ShimOnly,
+    [string]$Version = '0.0.0-local'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +33,21 @@ New-Item -ItemType Directory -Force $destination | Out-Null
 
 Copy-Item $launcher $server -Force
 Copy-Item $shim $destination -Force
+
+# 载体清单（ADR-0065）：核心据此认载体包，组件与服务配置器都在这里声明。
+$carrierManifest = [ordered]@{
+    schemaVersion = 1
+    name          = 'hosihikari'
+    version       = $Version
+    entry         = 'hosihikari.dll'
+    loader        = 'assembly'
+    kind          = 'carrier'
+    apiVersion    = 3
+    dependencies  = @()
+    carrier       = [ordered]@{ sharedAssemblies = @(); components = @() }
+}
+$carrierManifest | ConvertTo-Json -Depth 4 |
+    Set-Content (Join-Path $destination 'hosihikari.json') -Encoding utf8NoBOM
 
 if ($ShimOnly) {
     Write-Host "deployed shim-only to $destination"

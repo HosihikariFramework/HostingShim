@@ -119,7 +119,12 @@ void HosihikariPlugin::onLoad()
         setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
     }
 
-    if (const auto managed = start(nullptr, 0); managed != 0)
+    // 载体包目录就是插件的 data folder（ADR-0065）；宿主句柄交给载体包的托管侧，
+    // 它按投影定义的键注册进 CarrierServices（ADR-0064）。
+    const auto carrierUtf8 = dataDirectory.u8string();
+    const std::string carrierDirectory { carrierUtf8.begin(), carrierUtf8.end() };
+    if (const auto managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), this);
+        managed != 0)
     {
         getLogger().error("托管入口返回 {}", managed);
         return;
@@ -205,7 +210,7 @@ void HosihikariPlugin::onDisable()
 
 } // namespace hosihikari::shim::endstone_carrier
 
-ENDSTONE_PLUGIN("hosihikari", "1.2.3", hosihikari::shim::endstone_carrier::HosihikariPlugin)
+ENDSTONE_PLUGIN("hosihikari", "2.0.0", hosihikari::shim::endstone_carrier::HosihikariPlugin)
 {
     prefix = "Hosihikari";
     description = "把 CLR 托管进 BDS，并把插件管理交给星光框架核心";

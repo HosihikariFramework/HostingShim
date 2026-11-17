@@ -1,7 +1,7 @@
 @echo off
 REM Copy the built Shim and, for source deployments, the managed core into a server's plugins dir.
 REM
-REM   deploy.bat <server root> [shim-only]
+REM   deploy.bat <server root> [shim-only] [version]
 REM
 REM The managed core is taken from a sibling checkout of Hosihikari.PluginManager,
 REM or from HOSIHIKARI_PLUGINMANAGER. Release packaging passes shim-only: the core
@@ -40,6 +40,24 @@ for %%f in (ar en es fr ru zh) do (
     )
 )
 xcopy /e /i /y "%HERE%lang" "%DST%\lang" >nul
+
+REM Carrier manifest (ADR-0065): the core reads it to find carrier components and the
+REM service configurator. Keep this block ASCII only, like the rest of this file.
+set "CARRIERVERSION=%~3"
+if "%CARRIERVERSION%"=="" set "CARRIERVERSION=0.0.0-local"
+(
+  echo {
+  echo   "schemaVersion": 1,
+  echo   "name": "hosihikari",
+  echo   "version": "%CARRIERVERSION%",
+  echo   "entry": "hosihikari.dll",
+  echo   "loader": "assembly",
+  echo   "kind": "carrier",
+  echo   "apiVersion": 3,
+  echo   "dependencies": [],
+  echo   "carrier": { "sharedAssemblies": [], "components": [] }
+  echo }
+) > "%DST%\hosihikari.json"
 
 if /i "%~2"=="shim-only" (
     echo deployed shim-only to %DST%

@@ -96,7 +96,7 @@ SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory)
         return code != 0 ? code : -1;
     }
 
-    const int managed = entry(nullptr, 0);
+    const int managed = hosihikari::shim::InvokeStart(entry, nullptr, nullptr);
     Trace("04 托管入口已返回");
     return managed;
 }

@@ -181,7 +181,11 @@ bool ShimMod::load()
     LogSink sink { &logBridge, nullptr };
     setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
 
-    if (const int managed = start(nullptr, 0); managed != 0)
+    // 载体包目录是模组自己的目录（ADR-0065）；核心可能在 plugins/ 下的回退位置，两者不同。
+    const auto carrierUtf8 = dir.u8string();
+    const std::string carrierDirectory { carrierUtf8.begin(), carrierUtf8.end() };
+    if (const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr);
+        managed != 0)
     {
         clearLogSink();
         logger.error("Hosihikari: managed entry returned {0}"_tr(managed));
