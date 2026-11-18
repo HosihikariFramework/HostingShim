@@ -98,9 +98,13 @@ jobs:
           if (-not (Test-Path 'nethost.dll')) { throw 'nethost.dll is missing' }
           if (-not (Test-Path 'plugins/hosihikari/Hosihikari.PluginManager.dll')) { throw 'the core package is missing' }
           if (-not (Test-Path 'plugins/hosihikari/hosihikari.json')) { throw 'the carrier manifest is missing' }
-          # 投影载荷（ADR-0028）：清单声明的引导与绑定垫片必须真的在归档里。
-          if (-not (Test-Path 'plugins/hosihikari/Hosihikari.Carrier.Endstone.Bootstrap.dll')) { throw 'the carrier bootstrap is missing' }
-          if (-not (Test-Path 'plugins/hosihikari/Hosihikari.Bindings.Endstone.Shim.dll')) { throw 'the binding shim is missing' }
+          # 投影载荷（ADR-0028）：清单声明了引导，引导与绑定垫片就必须真的在归档里。
+          # 按清单断言，跑旧版本归档时不会误报。
+          $carrier = (Get-Content 'plugins/hosihikari/hosihikari.json' -Raw | ConvertFrom-Json).carrier
+          if ($carrier.bootstrap) {
+            if (-not (Test-Path 'plugins/hosihikari/Hosihikari.Carrier.Endstone.Bootstrap.dll')) { throw 'the carrier bootstrap is missing' }
+            if (-not (Test-Path 'plugins/hosihikari/Hosihikari.Bindings.Endstone.Shim.dll')) { throw 'the binding shim is missing' }
+          }
 
       - name: 冒烟
         shell: pwsh
