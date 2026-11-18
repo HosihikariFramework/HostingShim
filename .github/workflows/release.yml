@@ -130,13 +130,35 @@ jobs:
           path: Projection/Third/Endstone
           ref: ${{ env.ENDSTONE_REF }}
 
-      # 垫片的编译脚本从 xmake 包目录里取 expected-lite 与 nlohmann_json，
-      # 所以按包名装，而不是另检出源码。
+      - name: expected-lite 头文件
+        uses: actions/checkout@v7
+        with:
+          repository: martinmoene/expected-lite
+          path: expected-lite
+          ref: v0.9.0
+
+      - name: nlohmann/json 头文件
+        uses: actions/checkout@v7
+        with:
+          repository: nlohmann/json
+          path: nlohmann-json
+          ref: v3.11.3
+
+      # 垫片的编译脚本从 xmake 包目录里取这两个库的头文件。它们的安装探针
+      # 在 VS 18 的头文件上编不过（C++14 语法的探针撞上按 C++11 编），而这里
+      # 只需要头文件本身，所以按脚本认的布局把源码直接放进去，不装包。
       - name: 垫片依赖的头文件
         shell: pwsh
         run: |
-          xrepo install -y "expected-lite 0.8.0" "nlohmann_json v3.12.0"
-          if ($LASTEXITCODE -ne 0) { throw 'installing the shim headers failed' }
+          $ErrorActionPreference = 'Stop'
+          $ws = $env:GITHUB_WORKSPACE
+          $packages = Join-Path $env:LOCALAPPDATA '.xmake\packages'
+          $expected = Join-Path $packages 'e\expected-lite\release\include\nonstd'
+          New-Item -ItemType Directory -Force $expected | Out-Null
+          Copy-Item "$ws\expected-lite\include\nonstd\expected.hpp" $expected -Force
+          $json = Join-Path $packages 'n\nlohmann_json\release\include\nlohmann'
+          New-Item -ItemType Directory -Force $json | Out-Null
+          Copy-Item "$ws\nlohmann-json\single_include\nlohmann\json.hpp" $json -Force
 
       - uses: actions/cache@v6
         id: llvm-cache
