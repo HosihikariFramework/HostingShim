@@ -182,7 +182,8 @@ bool ShimMod::load()
     setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
 
     // 载体包目录是模组自己的目录（ADR-0065）；核心可能在 plugins/ 下的回退位置，两者不同。
-    const auto carrierUtf8 = dir.u8string();
+    // 取绝对路径：父级给的 mods 根是相对的，托管侧会拿它拼清单路径。
+    const auto carrierUtf8 = std::filesystem::absolute(dir).u8string();
     const std::string carrierDirectory { carrierUtf8.begin(), carrierUtf8.end() };
     if (const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr); managed != 0)
     {
