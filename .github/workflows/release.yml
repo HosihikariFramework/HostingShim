@@ -12,7 +12,7 @@ permissions:
 # 投影载荷（ADR-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 CapabilityExtension 的 verify.yml 成对改。
 env:
-  CAPABILITY_EXTENSION_REF: 07db54709fdbb5f8acb17a5dc0c30895708ebec9
+  CAPABILITY_EXTENSION_REF: 5ded7acd9844d5999b7a69128ceea09fc40f550a
   BINDING_IDIOMATIC_REF: cb58c87e22da3caa5ab9597bbf856e385608554a
   BINDING_ABI_REF: 0cefbb52067d31c8488269d2f1a701624c3a8729
   BINDING_ENDSTONE_REF: 53512018a19e895971e37543d37ed37b7511f186
@@ -367,8 +367,9 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           "$root/Shim/carriers/endstone/deploy.sh" "$root/stage-endstone-linux" shim-only "$version"
 
-          # 投影的 Linux 绑定垫片还没落地：配置器按 Windows 的文件名取垫片，Linux 侧
-          # 需要按平台的命名与装载。在这一步补齐之前，Linux 包声明空载体组。
+          # Linux 的绑定垫片要 Linux IR 的发射链，工具链还得与 Endstone 的 libc++ ABI
+          # 对齐——投影那边只有编译，没有 Linux 运行时冒烟。这条链在本作业里落地之前，
+          # Linux 包声明空载体组，装上去的组件也就不会缺垫片。
           jq '(.carrier.sharedAssemblies = []) | (.carrier.components = []) | del(.carrier.bootstrap)' \
             "$root/stage-endstone-linux/plugins/hosihikari/hosihikari.json" > "$root/stage-endstone-linux/plugins/hosihikari/manifest.tmp"
           mv "$root/stage-endstone-linux/plugins/hosihikari/manifest.tmp" \
