@@ -266,6 +266,9 @@ jobs:
             $file = Join-Path $payload $name
             if (-not (Test-Path $file)) { throw "the payload is missing $name" }
             Copy-Item $file "$root\stage-endstone\plugins\hosihikari\" -Force
+            # 注释文档跟着走：插件作者读的就是它（可用性时机这类行为约定写在里面）。
+            $doc = [System.IO.Path]::ChangeExtension($file, '.xml')
+            if (Test-Path $doc) { Copy-Item $doc "$root\stage-endstone\plugins\hosihikari\" -Force }
           }
           Copy-Item (Join-Path $payload 'Hosihikari.Bindings.Endstone.Shim.dll') `
             "$root\stage-endstone\plugins\hosihikari\" -Force
