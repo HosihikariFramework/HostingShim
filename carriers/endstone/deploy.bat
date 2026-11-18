@@ -37,23 +37,13 @@ REM application directory -- there is no per-mod directory on PATH here, unlike
 REM on LeviLamina.
 copy /y "%NETHOST%" "%~1\" >nul
 
-REM Carrier manifest (ADR-0065): the core reads it to find carrier components and the
-REM service configurator. Keep this block ASCII only, like the rest of this file.
+REM Carrier manifest (ADR-0065): the real one lives beside this script and is copied in
+REM with the version substituted. Keep this block ASCII only.
 set "CARRIERVERSION=%~3"
 if "%CARRIERVERSION%"=="" set "CARRIERVERSION=0.0.0-local"
-(
-  echo {
-  echo   "schemaVersion": 1,
-  echo   "name": "hosihikari",
-  echo   "version": "%CARRIERVERSION%",
-  echo   "entry": "hosihikari.dll",
-  echo   "loader": "assembly",
-  echo   "kind": "carrier",
-  echo   "apiVersion": 3,
-  echo   "dependencies": [],
-  echo   "carrier": { "sharedAssemblies": [], "components": [] }
-  echo }
-) > "%DST%\hosihikari.json"
+powershell -NoProfile -Command ^
+  "(Get-Content -Raw '%HERE%hosihikari.json').Replace('__VERSION__', '%CARRIERVERSION%') | Set-Content -NoNewline (Join-Path '%DST%' 'hosihikari.json')"
+if errorlevel 1 exit /b 1
 
 if /i "%~2"=="shim-only" (
     echo deployed shim-only to %~1
