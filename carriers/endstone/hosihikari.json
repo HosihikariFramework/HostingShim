@@ -13,7 +13,6 @@
     "sharedAssemblies": [
       "Hosihikari.Bindings.Abi.dll",
       "Hosihikari.Bindings.Endstone.Interop.dll",
-      "Hosihikari.Bindings.Endstone.Shim.dll",
       "Hosihikari.Binding.dll",
       "Hosihikari.Binding.Endstone.dll",
       "Hosihikari.Carrier.dll",

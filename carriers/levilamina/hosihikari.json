@@ -13,7 +13,6 @@
     "sharedAssemblies": [
       "Hosihikari.Bindings.Abi.dll",
       "Hosihikari.Bindings.LeviLamina.Interop.dll",
-      "Hosihikari.Bindings.LeviLamina.Shim.dll",
       "Hosihikari.Binding.dll",
       "Hosihikari.Binding.LeviLamina.dll",
       "Hosihikari.Carrier.dll",
