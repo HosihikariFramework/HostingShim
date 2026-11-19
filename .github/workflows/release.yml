@@ -280,7 +280,7 @@ jobs:
               schemaVersion = 3
               name          = 'hosihikari-hosting'
               version       = $version
-              dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[2.0.0,3.0.0)' })
+              dependencies  = @([ordered]@{ name = 'hosihikari'; version = '[2.0.1,3.0.0)' })
               prerequisites = @()
               optionalPeers = @()
               conflicts     = @()
@@ -405,7 +405,7 @@ jobs:
               schemaVersion: 3,
               name: "hosihikari-hosting",
               version: $version,
-              dependencies: [{ name: "hosihikari", version: "[2.0.0,3.0.0)" }],
+              dependencies: [{ name: "hosihikari", version: "[2.0.1,3.0.0)" }],
               prerequisites: [],
               optionalPeers: [],
               conflicts: [],
@@ -448,7 +448,7 @@ jobs:
             schemaVersion: 3,
             name: "hosihikari-hosting",
             version: $version,
-            dependencies: [{ name: "hosihikari", version: "[2.0.0,3.0.0)" }],
+            dependencies: [{ name: "hosihikari", version: "[2.0.1,3.0.0)" }],
             prerequisites: [],
             optionalPeers: [],
             conflicts: [],
@@ -548,7 +548,7 @@ jobs:
 
           entry=$(jq -n --arg version "$version" --argjson artifacts "$artifacts" '{
             version: $version,
-            dependencies: [{ name: "hosihikari", version: "[2.0.0,3.0.0)" }],
+            dependencies: [{ name: "hosihikari", version: "[2.0.1,3.0.0)" }],
             prerequisites: [],
             optionalPeers: [],
             conflicts: [],
