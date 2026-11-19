@@ -86,7 +86,11 @@ $ready = -join ([char]0x5DF2, [char]0x5C31, [char]0x7EEA)
 $tookOver = -join ([char]0x5DF2, [char]0x63A5, [char]0x7BA1)
 $takeovers = ([regex]::Matches($text, [regex]::Escape($tookOver))).Count
 $checks = @(
-    @{ Name = 'server exited cleanly'; Ok = (-not $timedOut -and $serverExit -eq 0) },
+    # Endstone 0.11.16 起 stop 之后进程以 -1 退出（裸服也如此），退出码不再能当干净退出的判据；
+    # 改为要求没有超时、且确实走到了停服。
+    # 另：BDS 的端口固定在 server.properties 里，换目录不隔离。同机并行跑多套根时必须给每套
+    # 不同的 server-port / server-portv6，否则绑定失败会表现成半途消失，很容易误判成崩溃。
+    @{ Name = 'server exited cleanly'; Ok = (-not $timedOut -and ($serverExit -eq 0 -or $text.Contains('Quit correctly'))) },
     @{ Name = 'carrier loads the CLR'; Ok = ($text.Contains('CLR') -and $text.Contains('BDS')) },
     @{ Name = 'core reports ready'; Ok = ($text.Contains($ready) -or $text.Contains('Hosihikari: Ready; waiting')) },
     @{ Name = 'carrier takes over'; Ok = $text.Contains($tookOver) },

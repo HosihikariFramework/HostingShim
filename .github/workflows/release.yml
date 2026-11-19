@@ -12,13 +12,13 @@ permissions:
 # 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 Capabilities 的 verify.yml 成对改。
 env:
-  CAPABILITIES_REF: 1009e3f150a342492639130d4391e28b5e6e2dc1
-  BINDING_IDIOMATIC_REF: 2212f8479204f35c0441c9ad4204b0793f1ad2ff
-  BINDING_ABI_REF: 0cefbb52067d31c8488269d2f1a701624c3a8729
-  BINDING_ENDSTONE_REF: 53512018a19e895971e37543d37ed37b7511f186
+  CAPABILITIES_REF: 7464274edd6a81f339fd34b192203e38e482d769
+  BINDING_IDIOMATIC_REF: 3a251dd12eb0a5562ea6d717a57cd90cc9763de1
+  BINDING_ABI_REF: 2ee2a0d989f8cd1690077c1426ccf4beb1ec92c3
+  BINDING_ENDSTONE_REF: a56a93baf37061a9a088e3ccdb627e988f2c04bd
   BINDING_GENERATOR_REF: d718503c85dea3d8d326df4496214cce98c9909b
   PLUGIN_ABSTRACTIONS_REF: fc1d8ee1106e4ebd88ecfb5a9d767826818bba6e
-  ENDSTONE_REF: v0.11.15
+  ENDSTONE_REF: v0.11.16
 
 jobs:
   windows-assets:
@@ -190,8 +190,8 @@ jobs:
           # verify.yml 同一组名字。
           $shared = @(
             "-p:PluginAbstractionsProjectPath=$proj\Plugin.Abstractions\src\Hosihikari.Plugin.Abstractions.csproj",
-            "-p:AbiProjectPath=$proj\Binding.Abi\src\Hosihikari.Bindings.Abi\Hosihikari.Bindings.Abi.csproj",
-            "-p:EndstoneInteropProjectPath=$proj\Binding.Endstone\src\Hosihikari.Bindings.Endstone.Interop\Hosihikari.Bindings.Endstone.Interop.csproj",
+            "-p:AbiProjectPath=$proj\Binding.Abi\src\Hosihikari.Binding.Abi\Hosihikari.Binding.Abi.csproj",
+            "-p:EndstoneInteropProjectPath=$proj\Binding.Endstone\src\Hosihikari.Binding.Endstone.Interop\Hosihikari.Binding.Endstone.Interop.csproj",
             "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj"
           )
           # 四个工程写进同一个输出目录；装配时按清单逐个核对，清单与载荷不会各说各话。
@@ -270,7 +270,7 @@ jobs:
             $doc = [System.IO.Path]::ChangeExtension($file, '.xml')
             if (Test-Path $doc) { Copy-Item $doc "$root\stage-endstone\plugins\hosihikari\" -Force }
           }
-          Copy-Item (Join-Path $payload 'Hosihikari.Bindings.Endstone.Shim.dll') `
+          Copy-Item (Join-Path $payload 'Hosihikari.Binding.Endstone.Shim.dll') `
             "$root\stage-endstone\plugins\hosihikari\" -Force
 
           # 每个附件根部的 sei.json 是分发元数据；artifact.prerequisites 指向同名的
@@ -353,7 +353,7 @@ jobs:
           $declared = @($carrier.sharedAssemblies) + @($carrier.components.assembly) + @($carrier.bootstrap.assembly) |
             Where-Object { $_ } | Select-Object -Unique
           $entries = & tar -tf (Join-Path $out 'hosihikari-endstone-windows-x64.zip') | ForEach-Object { $_ -replace '\\', '/' }
-          foreach ($name in @($declared) + @('Hosihikari.Bindings.Endstone.Shim.dll')) {
+          foreach ($name in @($declared) + @('Hosihikari.Binding.Endstone.Shim.dll')) {
             if ($entries -notcontains "plugins/hosihikari/$name") {
               throw "the Endstone archive is missing plugins/hosihikari/$name"
             }
