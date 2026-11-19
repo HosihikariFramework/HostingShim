@@ -170,7 +170,7 @@ foreach ($check in $checks) {
 $takeovers = ([regex]::Matches($text, 'Enabling hosihikari')).Count
 Write-Host ("{0}  reload re-enables carrier  ({1})" -f $(if ($takeovers -ge 2) { 'PASS' } else { 'FAIL' }), $takeovers)
 
-# reload disables names the managed side already dropped; that must not read as not-present (ADR-0037).
+# reload disables names the managed side already dropped; that must not read as not-present (FX-0037).
 # Only the fixture matters here; a crashed plugin is legitimately gone by the time reload runs.
 $notPresentReports = ([regex]::Matches($text, ('hello: ' + [regex]::Escape($notPresent)))).Count
 Write-Host ("{0}  reload does not report not-present  ({1})" -f $(if ($notPresentReports -eq 0) { 'PASS' } else { 'FAIL' }), $notPresentReports)

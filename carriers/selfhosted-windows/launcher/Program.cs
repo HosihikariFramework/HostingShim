@@ -1,7 +1,7 @@
 // Self-hosted Windows launcher.
 //
 // Start bedrock_server.exe suspended, inject plugins/hosihikari/hosihikari.dll,
-// call its exported entry, resume (ADR-0046). Published with NativeAOT so the
+// call its exported entry, resume (FX-0046). Published with NativeAOT so the
 // server does not need a .NET runtime beyond the one the framework already
 // requires, and with CsWin32 so the Win32 surface is generated rather than
 // hand-marshalled.
@@ -134,7 +134,7 @@ internal static unsafe class Program
 
         var remoteEntry = remoteBase + localExport.ToInt64() - (long)localModule.Value;
 
-        // ③ Call the export; ADR-0016's exported entry.
+        // ③ Call the export; FX-0016's exported entry.
         var managedDirectory = Encoding.UTF8.GetBytes(Path.Combine(root, "plugins", "hosihikari") + "\0");
         var remoteArgument = WriteToProcess(processHandle, managedDirectory);
         if (remoteArgument is null)

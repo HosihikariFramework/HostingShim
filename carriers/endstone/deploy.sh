@@ -41,7 +41,7 @@ cp -f "$plugin" "$server/plugins/hosihikari.so"
 # libnethost.so is resolved through the plugin's $ORIGIN, so it lives beside it.
 cp -f "$nethost" "$server/plugins/libnethost.so"
 
-# 载体清单（ADR-0065）：模板在脚本旁，替换版本后拷进包里。
+# 载体清单（FX-0065）：模板在脚本旁，替换版本后拷进包里。
 carrier_version=${3:-0.0.0-local}
 sed "s/__VERSION__/$carrier_version/" "$here/hosihikari.json" > "$dst/hosihikari.json"
 

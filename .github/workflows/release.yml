@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
 
-# 投影载荷（ADR-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
+# 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 CapabilityExtension 的 verify.yml 成对改。
 env:
   CAPABILITY_EXTENSION_REF: 8de3e25f1640933cc81de36f48356b58d5fe6af6
@@ -78,7 +78,7 @@ jobs:
         working-directory: Shim
         run: carriers\selfhosted-windows\build.bat
 
-      # 投影载荷（ADR-0028）：Endstone 的载体归档从 v2 起带托管共享层、载体组件
+      # 投影载荷（FX-0028）：Endstone 的载体归档从 v2 起带托管共享层、载体组件
       # 与服务配置器，另加绑定垫片。全部按上面的提交构建。
       - name: CapabilityExtension
         uses: actions/checkout@v7
@@ -256,7 +256,7 @@ jobs:
           & "$root\Shim\carriers\endstone\deploy.bat"  "$root\stage-endstone" shim-only $version
           & "$root\Shim\carriers\selfhosted-windows\deploy.ps1" -ServerRoot "$root\stage-selfhosted-windows" -ShimOnly -Version $version
 
-          # 投影载荷按载体清单入包（ADR-0028）：清单里列的名字就是包里该有的文件，
+          # 投影载荷按载体清单入包（FX-0028）：清单里列的名字就是包里该有的文件，
           # 少一个就停下——清单与载荷不能各说各话。LeviLamina 与自持面的清单还是空载体组。
           $carrier = (Get-Content "$root\Shim\carriers\endstone\hosihikari.json" -Raw | ConvertFrom-Json).carrier
           $declared = @($carrier.sharedAssemblies) + @($carrier.components.assembly) + @($carrier.bootstrap.assembly) |
