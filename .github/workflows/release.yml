@@ -12,7 +12,7 @@ permissions:
 # 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 Capabilities 的 verify.yml 成对改。
 env:
-  CAPABILITY_EXTENSION_REF: 8de3e25f1640933cc81de36f48356b58d5fe6af6
+  CAPABILITIES_REF: 1009e3f150a342492639130d4391e28b5e6e2dc1
   BINDING_IDIOMATIC_REF: 2212f8479204f35c0441c9ad4204b0793f1ad2ff
   BINDING_ABI_REF: 0cefbb52067d31c8488269d2f1a701624c3a8729
   BINDING_ENDSTONE_REF: 53512018a19e895971e37543d37ed37b7511f186
@@ -85,7 +85,7 @@ jobs:
         with:
           repository: HosihikariProjection/Capabilities
           path: Projection/Capabilities
-          ref: ${{ env.CAPABILITY_EXTENSION_REF }}
+          ref: ${{ env.CAPABILITIES_REF }}
 
       - name: 投影绑定层
         uses: actions/checkout@v7
