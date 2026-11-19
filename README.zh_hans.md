@@ -7,7 +7,7 @@
 
 它只做四件事：定位 hostfxr、以插件管理器的 `runtimeconfig.json` 初始化运行时、载入插件管理器程序集、取托管入口。
 其余一切（发现、依赖、隔离、生命周期）都在托管侧。它不投影载体 API —— 那一侧是 **BindingShim**，
-由星光产出（ADR-0021）。
+由星光产出（FX-0021）。
 
 ## 这个仓里有什么
 
@@ -105,12 +105,12 @@ bash carriers/selfhosted-linux/deploy.sh <bedrock_server 所在目录>
 
 `hosihikari-server` 用 `LD_PRELOAD` 预加载 `plugins/hosihikari/libhosihikari.so`。垫片拦截
 `__libc_start_main`，在 BDS 的 `main` 之前启动 CLR 与插件管理器，插件管理器自己枚举 `plugins/`
-（ADR-0005 / 0013 / 0018）。启动器会先切到服务端目录，插件管理器的相对路径因此落在正确的服务端根上；
+（FX-0005 / 0013 / 0018）。启动器会先切到服务端目录，插件管理器的相对路径因此落在正确的服务端根上；
 需要系统已装 .NET 10 运行时。
 
-自持态的目标是 BDS 1.21.3：容器本身与 BDS 版本无关，但能力面（星光）止于那里（ADR-0001）。
+自持态的目标是 BDS 1.21.3：容器本身与 BDS 版本无关，但能力面（星光）止于那里（FX-0001）。
 
-这个载体没有运行期启停（ADR-0020）：插件在服务端 `main` 之前加载，一直留到进程结束。源码插件在这里同样能跑——
+这个载体没有运行期启停（FX-0020）：插件在服务端 `main` 之前加载，一直留到进程结束。源码插件在这里同样能跑——
 装上对应的加载器包（例如 `github.com/HosihikariFramework/CSharpLoader`），与父级态下的做法一样。只验载体本身的真机路径：
 
 ```
@@ -126,12 +126,12 @@ hosihikari-server.exe
 ```
 
 `hosihikari-server.exe` 挂起启动 `bedrock_server.exe`，把 `plugins/hosihikari/hosihikari.dll` 注入进去，
-调用它的导出入口，再恢复运行。CLR 在这次调用里启动，不在 loader lock 下（ADR-0016）；启动器就是
-「生产里谁加载」的答案（ADR-0046）。垫片静态链接 nethost，不需要部署 `nethost.dll`。
+调用它的导出入口，再恢复运行。CLR 在这次调用里启动，不在 loader lock 下（FX-0016）；启动器就是
+「生产里谁加载」的答案（FX-0046）。垫片静态链接 nethost，不需要部署 `nethost.dll`。
 
-启动器是 NativeAOT 的 .NET 项目（ADR-0047）；`build.bat` 需要 .NET 10 SDK 与 MSVC 链接器，并把发布产物放在垫片旁。
+启动器是 NativeAOT 的 .NET 项目（FX-0047）；`build.bat` 需要 .NET 10 SDK 与 MSVC 链接器，并把发布产物放在垫片旁。
 
-自持态 Windows 的目标是 BDS 1.21.3.01，与自持态 Linux 同一个上限（ADR-0001）。只验载体本身的真机路径：
+自持态 Windows 的目标是 BDS 1.21.3.01，与自持态 Linux 同一个上限（FX-0001）。只验载体本身的真机路径：
 
 ```
 pwsh carriers\selfhosted-windows\smoke.ps1 -ServerRoot <服务端根目录>
@@ -152,7 +152,7 @@ cmake --build build --config Release
 导出入口的 DLL，后者把它注入一个挂起启动的 `bedrock_server.exe`，再显式调那个导出。
 
 > `injector` 仍是**验证脚手架**：生产里的加载器是自持态 Windows 的启动器，注入与导出调用由它负责
-> （ADR-0046）。`injector` 保留为在真实 `bedrock_server.exe` 上验证原生到托管这一跳的手段。
+> （FX-0046）。`injector` 保留为在真实 `bedrock_server.exe` 上验证原生到托管这一跳的手段。
 
 ## CI 覆盖到哪
 

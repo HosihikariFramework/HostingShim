@@ -9,7 +9,7 @@ hosts the CLR inside the BDS process and then hands control to the core,
 It does four things: locate hostfxr, initialise the runtime from the core's `runtimeconfig.json`,
 load the core assembly, and fetch the managed entry point. Everything else — discovery,
 dependencies, isolation, lifecycle — happens on the managed side. It does not project carrier
-APIs; that side is **BindingShim**, produced outside this repository (ADR-0021).
+APIs; that side is **BindingShim**, produced outside this repository (FX-0021).
 
 ## What is in this repository
 
@@ -118,13 +118,13 @@ bash carriers/selfhosted-linux/deploy.sh <folder containing bedrock_server>
 
 `hosihikari-server` preloads `plugins/hosihikari/libhosihikari.so` with `LD_PRELOAD`. The shim
 intercepts `__libc_start_main`, starts the CLR and the core before BDS' `main`, and the core scans
-`plugins/` itself (ADR-0005 / 0013 / 0018). The launcher `cd`s to the server folder, so the core's
+`plugins/` itself (FX-0005 / 0013 / 0018). The launcher `cd`s to the server folder, so the core's
 relative paths land on the right server root; it needs the .NET 10 runtime installed.
 
 The self-hosted target is BDS 1.21.3: the container itself is BDS-version-agnostic, but the
-capability surface (星光) stops there (ADR-0001).
+capability surface (星光) stops there (FX-0001).
 
-There is no runtime enable/disable under this carrier (ADR-0020): plugins load before the server's
+There is no runtime enable/disable under this carrier (FX-0020): plugins load before the server's
 `main` and stay loaded until the process ends. Source plugins work here too — install the loader
 package (for example `github.com/HosihikariFramework/CSharpLoader`) alongside the carrier, exactly as
 under a parent. A carrier-only live pass:
@@ -143,13 +143,13 @@ hosihikari-server.exe
 
 `hosihikari-server.exe` starts `bedrock_server.exe` suspended, injects
 `plugins/hosihikari/hosihikari.dll`, calls its exported entry, and resumes the server. The CLR starts
-in that call, outside the loader lock (ADR-0016); the launcher is the answer to "who loads us in
-production" (ADR-0046). The shim links nethost statically, so there is no `nethost.dll` to deploy.
+in that call, outside the loader lock (FX-0016); the launcher is the answer to "who loads us in
+production" (FX-0046). The shim links nethost statically, so there is no `nethost.dll` to deploy.
 
-The launcher is a NativeAOT .NET project (ADR-0047); `build.bat` needs the .NET 10 SDK and an MSVC
+The launcher is a NativeAOT .NET project (FX-0047); `build.bat` needs the .NET 10 SDK and an MSVC
 linker, and publishes it next to the shim.
 
-The self-hosted Windows target is BDS 1.21.3.01, the same ceiling as self-hosted Linux (ADR-0001).
+The self-hosted Windows target is BDS 1.21.3.01, the same ceiling as self-hosted Linux (FX-0001).
 A carrier-only live pass:
 
 ```
@@ -172,7 +172,7 @@ first builds the startup sequence as a DLL with an exported entry point, the sec
 suspended `bedrock_server.exe` and calls that export.
 
 > `injector` stays **verification scaffolding**: the production loader is the self-hosted Windows
-> launcher, which owns the injection and the exported-entry call (ADR-0046). `injector` remains a
+> launcher, which owns the injection and the exported-entry call (FX-0046). `injector` remains a
 > way to prove the native-to-managed hop against a real `bedrock_server.exe`.
 
 ## What CI covers

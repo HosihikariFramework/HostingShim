@@ -38,7 +38,7 @@ cp -f "$nethost" "$dst/libnethost.so"
 cp -f "$here/hosihikari-server" "$server/hosihikari-server"
 chmod +x "$server/hosihikari-server"
 
-# 载体清单（ADR-0065）：模板在脚本旁，替换版本后拷进包里。
+# 载体清单（FX-0065）：模板在脚本旁，替换版本后拷进包里。
 carrier_version=${3:-0.0.0-local}
 sed "s/__VERSION__/$carrier_version/" "$here/hosihikari.json" > "$dst/hosihikari.json"
 

@@ -34,7 +34,7 @@ New-Item -ItemType Directory -Force $destination | Out-Null
 Copy-Item $launcher $server -Force
 Copy-Item $shim $destination -Force
 
-# 载体清单（ADR-0065）：模板在脚本旁，替换版本后拷进包里。
+# 载体清单（FX-0065）：模板在脚本旁，替换版本后拷进包里。
 (Get-Content -Raw (Join-Path $here 'hosihikari.json')).Replace('__VERSION__', $Version) |
     Set-Content (Join-Path $destination 'hosihikari.json') -Encoding utf8NoBOM
 
