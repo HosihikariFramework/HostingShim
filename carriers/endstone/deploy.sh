@@ -41,21 +41,9 @@ cp -f "$plugin" "$server/plugins/hosihikari.so"
 # libnethost.so is resolved through the plugin's $ORIGIN, so it lives beside it.
 cp -f "$nethost" "$server/plugins/libnethost.so"
 
-# 载体清单（ADR-0065）：核心据此认载体包，组件与服务配置器都在这里声明。
+# 载体清单（ADR-0065）：模板在脚本旁，替换版本后拷进包里。
 carrier_version=${3:-0.0.0-local}
-cat > "$dst/hosihikari.json" <<EOF
-{
-  "schemaVersion": 1,
-  "name": "hosihikari",
-  "version": "$carrier_version",
-  "entry": "hosihikari.dll",
-  "loader": "assembly",
-  "kind": "carrier",
-  "apiVersion": 3,
-  "dependencies": [],
-  "carrier": { "sharedAssemblies": [], "components": [] }
-}
-EOF
+sed "s/__VERSION__/$carrier_version/" "$here/hosihikari.json" > "$dst/hosihikari.json"
 
 if [ "$shim_only" = "shim-only" ]; then
     echo "deployed shim-only to $dst"

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "name": "hosihikari",
+  "version": "__VERSION__",
+  "entry": "hosihikari.dll",
+  "loader": "assembly",
+  "kind": "carrier",
+  "apiVersion": 3,
+  "dependencies": [],
+  "description": "Endstone carrier for the Hosihikari framework.",
+  "author": "HosihikariFramework",
+  "carrier": {
+    "sharedAssemblies": [
+      "Hosihikari.Bindings.Abi.dll",
+      "Hosihikari.Bindings.Endstone.Interop.dll",
+      "Hosihikari.Binding.dll",
+      "Hosihikari.Binding.Endstone.dll",
+      "Hosihikari.Carrier.dll",
+      "Hosihikari.Carrier.Endstone.dll",
+      "Hosihikari.Carrier.Endstone.Bootstrap.dll",
+      "Hosihikari.Extension.Abstractions.dll",
+      "Hosihikari.Extension.Event.dll",
+      "Hosihikari.Extension.Event.Endstone.dll",
+      "Hosihikari.Extension.Async.dll",
+      "Hosihikari.Extension.Async.Endstone.dll",
+      "Hosihikari.Extension.UI.dll",
+      "Hosihikari.Extension.UI.Endstone.dll"
+    ],
+    "components": [
+      {
+        "assembly": "Hosihikari.Carrier.Endstone.dll",
+        "type": "Hosihikari.Carrier.Endstone.ServerSynchronizationContextComponent"
+      },
+      {
+        "assembly": "Hosihikari.Extension.Event.Endstone.dll",
+        "type": "Hosihikari.Extension.Event.Endstone.EventPublisherComponent"
+      },
+      {
+        "assembly": "Hosihikari.Extension.Async.Endstone.dll",
+        "type": "Hosihikari.Extension.Async.Endstone.AsyncServiceComponent"
+      }
+    ],
+    "bootstrap": {
+      "assembly": "Hosihikari.Carrier.Endstone.Bootstrap.dll",
+      "type": "Hosihikari.Carrier.Endstone.EndstoneCarrierServicesConfigurator"
+    }
+  }
+}

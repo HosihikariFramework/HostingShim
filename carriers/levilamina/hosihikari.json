@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "hosihikari",
+  "version": "__VERSION__",
+  "entry": "hosihikari.dll",
+  "loader": "assembly",
+  "kind": "carrier",
+  "apiVersion": 3,
+  "dependencies": [],
+  "description": "LeviLamina carrier for the Hosihikari framework.",
+  "author": "HosihikariFramework",
+  "carrier": {
+    "sharedAssemblies": [],
+    "components": []
+  }
+}
