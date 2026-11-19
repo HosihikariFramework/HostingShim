@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 # 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
-# 与绑定垫片全部按这些提交构建。升版时与 CapabilityExtension 的 verify.yml 成对改。
+# 与绑定垫片全部按这些提交构建。升版时与 Capabilities 的 verify.yml 成对改。
 env:
   CAPABILITY_EXTENSION_REF: 8de3e25f1640933cc81de36f48356b58d5fe6af6
   BINDING_IDIOMATIC_REF: 2212f8479204f35c0441c9ad4204b0793f1ad2ff
@@ -80,11 +80,11 @@ jobs:
 
       # 投影载荷（FX-0028）：Endstone 的载体归档从 v2 起带托管共享层、载体组件
       # 与服务配置器，另加绑定垫片。全部按上面的提交构建。
-      - name: CapabilityExtension
+      - name: Capabilities
         uses: actions/checkout@v7
         with:
-          repository: HosihikariProjection/CapabilityExtension
-          path: Projection/CapabilityExtension
+          repository: HosihikariProjection/Capabilities
+          path: Projection/Capabilities
           ref: ${{ env.CAPABILITY_EXTENSION_REF }}
 
       - name: 投影绑定层
@@ -186,7 +186,7 @@ jobs:
           $ws = $env:GITHUB_WORKSPACE
           $proj = Join-Path $ws 'Projection'
           $out = Join-Path $ws 'payload'
-          # 共享层与组件的工程引用靠这几个属性跨仓指向，与 CapabilityExtension 的
+          # 共享层与组件的工程引用靠这几个属性跨仓指向，与 Capabilities 的
           # verify.yml 同一组名字。
           $shared = @(
             "-p:PluginAbstractionsProjectPath=$proj\Plugin.Abstractions\src\Hosihikari.Plugin.Abstractions.csproj",
@@ -200,7 +200,7 @@ jobs:
               'Hosihikari.Extension.Event.Endstone',
               'Hosihikari.Extension.Async.Endstone',
               'Hosihikari.Extension.UI.Endstone')) {
-            dotnet build "$proj\CapabilityExtension\src\$name\$name.csproj" -c Release -o $out -v q --nologo @shared
+            dotnet build "$proj\Capabilities\src\$name\$name.csproj" -c Release -o $out -v q --nologo @shared
             if ($LASTEXITCODE -ne 0) { throw "building $name failed" }
           }
 
