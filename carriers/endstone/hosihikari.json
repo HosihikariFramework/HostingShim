@@ -11,8 +11,8 @@
   "author": "HosihikariFramework",
   "carrier": {
     "sharedAssemblies": [
-      "Hosihikari.Bindings.Abi.dll",
-      "Hosihikari.Bindings.Endstone.Interop.dll",
+      "Hosihikari.Binding.Abi.dll",
+      "Hosihikari.Binding.Endstone.Interop.dll",
       "Hosihikari.Binding.dll",
       "Hosihikari.Binding.Endstone.dll",
       "Hosihikari.Carrier.dll",
@@ -42,7 +42,7 @@
     ],
     "bootstrap": {
       "assembly": "Hosihikari.Carrier.Endstone.Bootstrap.dll",
-      "type": "Hosihikari.Carrier.Endstone.EndstoneCarrierServicesConfigurator"
+      "type": "Hosihikari.Carrier.Endstone.Bootstrap.EndstoneCarrierServicesConfigurator"
     }
   }
 }
