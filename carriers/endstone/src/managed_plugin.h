@@ -43,14 +43,17 @@ public:
     }
 
     /// 交给托管侧的是**包目录** —— 清单只有一个读者（ADR-0003）。
-    void setPackageDirectory(std::string directory) { packageDirectory_ = std::move(directory); }
+    void setPackageDirectory(std::string directory)
+    {
+        packageDirectory_ = std::move(directory);
+    }
 
 private:
-    std::string name_;
+    std::string                 name_;
     endstone::PluginDescription description_;
-    ManagedPluginEntries entries_;
-    std::string packageDirectory_;
-    bool loaded_ = false;
+    ManagedPluginEntries        entries_;
+    std::string                 packageDirectory_;
+    bool                        loaded_ = false;
 };
 
 } // namespace hosihikari::shim::endstone_carrier

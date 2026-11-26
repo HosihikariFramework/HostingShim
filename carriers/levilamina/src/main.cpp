@@ -48,8 +48,8 @@ ShimMod& getShim()
 /// 等级由托管侧映射：0 调试、1 信息、2 警告、3 错误、4 致命。
 void logBridge(void* /*user*/, int level, const char* utf8)
 {
-    auto& logger = ll::mod::NativeMod::current()->getLogger();
-    const std::string message = utf8 == nullptr ? std::string { } : std::string { utf8 };
+    auto&             logger  = ll::mod::NativeMod::current()->getLogger();
+    const std::string message = utf8 == nullptr ? std::string{} : std::string{utf8};
 
     switch (level)
     {
@@ -119,8 +119,8 @@ bool ShimMod::load()
 
     // LeviLamina 26.60 起把 mods 根换成 `./mods`（PreLoaderConfig），而共享的核心归档仍铺在
     // `plugins/hosihikari`：优先用与模组同目录的核心，找不到就回退到那里。
-    const auto dir = self->getModDir();
-    auto coreDir = dir;
+    const auto dir     = self->getModDir();
+    auto       coreDir = dir;
     if (!std::filesystem::exists(coreDir / L"Hosihikari.PluginManager.dll"))
     {
         const auto shared = std::filesystem::absolute(dir.parent_path().parent_path() / L"plugins" / L"hosihikari");
@@ -135,31 +135,30 @@ bool ShimMod::load()
 
     logger.info("Hosihikari: hosting the CLR in the BDS process"_tr());
     component_entry_point_fn start = nullptr;
-    const int code = hosihikari::shim::StartRuntime(
-        (coreDir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
-        assembly.c_str(),
-        entryType,
-        // 父级态入口：插件由 LeviLamina 按 type 路由过来，我们不扫 plugins/（ADR-0003）。
-        L"StartUnderParent",
-        &start);
+    const int code = hosihikari::shim::StartRuntime((coreDir / L"Hosihikari.PluginManager.runtimeconfig.json").c_str(),
+                                                    assembly.c_str(), entryType,
+                                                    // 父级态入口：插件由 LeviLamina 按 type 路由过来，我们不扫
+                                                    // plugins/（ADR-0003）。
+                                                    L"StartUnderParent", &start);
     if (code != 0 || start == nullptr)
     {
         logger.error("Hosihikari: startup sequence failed: 0x{0:08X}"_tr(static_cast<unsigned>(code)));
         return false;
     }
 
-    const auto fetch = [&](const wchar_t* method, component_entry_point_fn* slot)
-    { return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot); };
+    const auto fetch = [&](const wchar_t* method, component_entry_point_fn* slot) {
+        return hosihikari::shim::GetManagedEntry(assembly.c_str(), entryType, method, slot);
+    };
 
     // 所有入口在交出日志出口、启动托管核心之前取齐。缺一个就返回，父级销毁失效 mod
     // 时还没有托管回调指向这段代码。
-    component_entry_point_fn setLogSink = nullptr;
+    component_entry_point_fn setLogSink     = nullptr;
     component_entry_point_fn setRemovalSink = nullptr;
-    ManagedPluginEntries entries { };
-    if (fetch(L"SetLogSink", &setLogSink) != 0 || fetch(L"SetRemovalSink", &setRemovalSink) != 0
-        || fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0
-        || fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0
-        || setLogSink == nullptr || setRemovalSink == nullptr)
+    ManagedPluginEntries     entries{};
+    if (fetch(L"SetLogSink", &setLogSink) != 0 || fetch(L"SetRemovalSink", &setRemovalSink) != 0 ||
+        fetch(L"LoadPlugin", &entries.load) != 0 || fetch(L"UnloadPlugin", &entries.unload) != 0 ||
+        fetch(L"EnablePlugin", &entries.enable) != 0 || fetch(L"DisablePlugin", &entries.disable) != 0 ||
+        setLogSink == nullptr || setRemovalSink == nullptr)
     {
         logger.error("Hosihikari: could not get the managed core entry points"_tr());
         return false;
@@ -171,21 +170,22 @@ bool ShimMod::load()
         void* user;
     };
 
-    const auto clearLogSink = [&]
-    {
-        LogSink empty { nullptr, nullptr };
+    const auto clearLogSink = [&] {
+        LogSink empty{nullptr, nullptr};
         setLogSink(reinterpret_cast<char*>(&empty), sizeof(empty));
     };
 
     // 日志出口要在托管入口跑之前交过去 —— 否则启动那几行还落在它自己的控制台上。
-    LogSink sink { &logBridge, nullptr };
+    LogSink sink{&logBridge, nullptr};
     setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
 
-    // 载体包目录是模组自己的目录（ADR-0065）；核心可能在 plugins/ 下的回退位置，两者不同。
-    // 取绝对路径：父级给的 mods 根是相对的，托管侧会拿它拼清单路径。
-    const auto carrierUtf8 = std::filesystem::absolute(dir).u8string();
-    const std::string carrierDirectory { carrierUtf8.begin(), carrierUtf8.end() };
-    if (const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr); managed != 0)
+    // 宿主句柄是本模组自己的模块句柄：LeviLamina 的 addListener 要求监听器带着一个可锁的
+    // mod，而 director 的构造参数默认值在垫片里求值，那时 NativeMod::current() 拿到的是垫片
+    // 自己的模块，只有它登记过的模块才解析得出来。把载体模组的句柄递过去，监听器才锁得住。
+    const auto        carrierUtf8 = std::filesystem::absolute(dir).u8string();
+    const std::string carrierDirectory{carrierUtf8.begin(), carrierUtf8.end()};
+    if (const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), self->getHandle());
+        managed != 0)
     {
         clearLogSink();
         logger.error("Hosihikari: managed entry returned {0}"_tr(managed));
@@ -209,7 +209,7 @@ bool ShimMod::load()
         void* user;
     };
 
-    RemovalSink removal { &removalBridge, manager.get() };
+    RemovalSink removal{&removalBridge, manager.get()};
     if (setRemovalSink(reinterpret_cast<char*>(&removal), sizeof(removal)) != 0)
     {
         logger.warn(

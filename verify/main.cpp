@@ -70,13 +70,13 @@ int main(int argc, char** argv)
         directory.push_back('/');
     }
 
-    const std::wstring unused = { }; // 占位，避免不同标准库下的窄化告警
+    const std::wstring unused = {}; // 占位，避免不同标准库下的窄化告警
     (void)unused;
 
-    const auto configPath = AsCharT(directory + "Hosihikari.PluginManager.runtimeconfig.json");
+    const auto configPath   = AsCharT(directory + "Hosihikari.PluginManager.runtimeconfig.json");
     const auto assemblyPath = AsCharT(directory + "Hosihikari.PluginManager.dll");
-    const auto typeName = AsCharT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
-    const auto methodName = AsCharT("Start");
+    const auto typeName     = AsCharT("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
+    const auto methodName   = AsCharT("Start");
 
     std::printf("=== 原生宿主：%s ===\n", AsNarrow(assemblyPath.c_str()).c_str());
 

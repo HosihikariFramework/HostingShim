@@ -21,7 +21,7 @@
 namespace
 {
 
-using MainFunction = int (*)(int, char**, char**);
+using MainFunction  = int (*)(int, char**, char**);
 using LibcStartMain = int (*)(MainFunction, int, char**, void (*)(void), void (*)(void), void (*)(void), void*);
 
 /// 自持态的托管入口在核心目录里；目录由本模块的装载路径推出来。
@@ -29,39 +29,36 @@ void StartSelfHosted()
 {
     try
     {
-        Dl_info info { };
+        Dl_info info{};
         if (::dladdr(reinterpret_cast<void*>(&StartSelfHosted), &info) == 0 || info.dli_fname == nullptr)
         {
             std::fprintf(stderr, "[hosihikari] 取不到本模块路径，跳过托管启动\n");
             return;
         }
 
-        const auto directory = std::filesystem::absolute(info.dli_fname).parent_path();
+        const auto directory     = std::filesystem::absolute(info.dli_fname).parent_path();
         const auto runtimeConfig = directory / "Hosihikari.PluginManager.runtimeconfig.json";
-        const auto component = directory / "Hosihikari.PluginManager.dll";
+        const auto component     = directory / "Hosihikari.PluginManager.dll";
         if (!std::filesystem::exists(runtimeConfig) || !std::filesystem::exists(component))
         {
-            std::fprintf(
-                stderr, "[hosihikari] 核心文件不在 %s（需要 runtimeconfig.json 与 dll）\n", directory.string().c_str());
+            std::fprintf(stderr, "[hosihikari] 核心文件不在 %s（需要 runtimeconfig.json 与 dll）\n",
+                         directory.string().c_str());
             return;
         }
 
         component_entry_point_fn start = nullptr;
-        const int code = hosihikari::shim::StartRuntime(
-            runtimeConfig.c_str(),
-            component.c_str(),
-            "Hosihikari.NativeHostingEntry, Hosihikari.PluginManager",
-            "Start",
-            &start);
+        const int                code =
+            hosihikari::shim::StartRuntime(runtimeConfig.c_str(), component.c_str(),
+                                           "Hosihikari.NativeHostingEntry, Hosihikari.PluginManager", "Start", &start);
         if (code != 0 || start == nullptr)
         {
             std::fprintf(stderr, "[hosihikari] 启动序列失败：0x%08X\n", static_cast<unsigned>(code));
             return;
         }
 
-        const auto directoryUtf8 = directory.u8string();
-        const std::string carrierDirectory { directoryUtf8.begin(), directoryUtf8.end() };
-        const int managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr);
+        const auto        directoryUtf8 = directory.u8string();
+        const std::string carrierDirectory{directoryUtf8.begin(), directoryUtf8.end()};
+        const int         managed = hosihikari::shim::InvokeStart(start, carrierDirectory.c_str(), nullptr);
         if (managed != 0)
         {
             std::fprintf(stderr, "[hosihikari] 托管入口返回 %d\n", managed);
@@ -79,17 +76,16 @@ void StartSelfHosted()
 
 } // namespace
 
-extern "C" int __libc_start_main(
-    MainFunction main,
-    int argc,
-    char** argv,
-    void (*init)(void),
-    void (*fini)(void),
-    void (*rtld_fini)(void),
-    void* stack_end)
+extern "C" int __libc_start_main(MainFunction main,
+                                 int          argc,
+                                 char**       argv,
+                                 void (*init)(void),
+                                 void (*fini)(void),
+                                 void (*rtld_fini)(void),
+                                 void* stack_end)
 {
-    static LibcStartMain real = nullptr;
-    static bool started = false;
+    static LibcStartMain real    = nullptr;
+    static bool          started = false;
 
     if (!started)
     {

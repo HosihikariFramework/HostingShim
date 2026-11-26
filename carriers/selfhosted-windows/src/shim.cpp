@@ -18,23 +18,21 @@ namespace
 std::wstring OwnDirectory()
 {
     HMODULE module = nullptr;
-    if (!::GetModuleHandleExW(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            reinterpret_cast<LPCWSTR>(&OwnDirectory),
-            &module))
+    if (!::GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                              reinterpret_cast<LPCWSTR>(&OwnDirectory), &module))
     {
-        return { };
+        return {};
     }
 
-    wchar_t path[MAX_PATH];
+    wchar_t     path[MAX_PATH];
     const DWORD length = ::GetModuleFileNameW(module, path, MAX_PATH);
     if (length == 0 || length == MAX_PATH)
     {
-        return { };
+        return {};
     }
 
     std::wstring full(path, length);
-    const auto slash = full.find_last_of(L"\\/");
+    const auto   slash = full.find_last_of(L"\\/");
     return slash == std::wstring::npos ? std::wstring() : full.substr(0, slash + 1);
 }
 
@@ -42,13 +40,13 @@ std::wstring Widen(const char* utf8)
 {
     if (utf8 == nullptr)
     {
-        return { };
+        return {};
     }
 
     const int length = ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
     if (length <= 0)
     {
-        return { };
+        return {};
     }
 
     std::wstring result(static_cast<size_t>(length), L'\0');
@@ -81,22 +79,19 @@ extern "C" __declspec(dllexport) int HosihikariShimStart(const char* managedDire
         directory.push_back(L'\\');
     }
 
-    const std::wstring configPath = directory + L"Hosihikari.PluginManager.runtimeconfig.json";
+    const std::wstring configPath   = directory + L"Hosihikari.PluginManager.runtimeconfig.json";
     const std::wstring assemblyPath = directory + L"Hosihikari.PluginManager.dll";
-    if (::GetFileAttributesW(configPath.c_str()) == INVALID_FILE_ATTRIBUTES
-        || ::GetFileAttributesW(assemblyPath.c_str()) == INVALID_FILE_ATTRIBUTES)
+    if (::GetFileAttributesW(configPath.c_str()) == INVALID_FILE_ATTRIBUTES ||
+        ::GetFileAttributesW(assemblyPath.c_str()) == INVALID_FILE_ATTRIBUTES)
     {
         std::fwprintf(stderr, L"[hosihikari] 核心文件不在 %ls\n", directory.c_str());
         return -2;
     }
 
     component_entry_point_fn entry = nullptr;
-    const int code = hosihikari::shim::StartRuntime(
-        configPath.c_str(),
-        assemblyPath.c_str(),
-        L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager",
-        L"Start",
-        &entry);
+    const int                code =
+        hosihikari::shim::StartRuntime(configPath.c_str(), assemblyPath.c_str(),
+                                       L"Hosihikari.NativeHostingEntry, Hosihikari.PluginManager", L"Start", &entry);
     if (code != 0 || entry == nullptr)
     {
         Fail("启动序列失败", code);
@@ -104,7 +99,7 @@ extern "C" __declspec(dllexport) int HosihikariShimStart(const char* managedDire
     }
 
     // 载体包目录按 UTF-8 交过去（契约 2 的形状是窄字符，ADR-0065）。
-    const int carrierBytes = ::WideCharToMultiByte(CP_UTF8, 0, directory.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    const int   carrierBytes = ::WideCharToMultiByte(CP_UTF8, 0, directory.c_str(), -1, nullptr, 0, nullptr, nullptr);
     std::string carrierDirectory(static_cast<size_t>(carrierBytes) - 1, '\0');
     ::WideCharToMultiByte(CP_UTF8, 0, directory.c_str(), -1, carrierDirectory.data(), carrierBytes, nullptr, nullptr);
     const int managed = hosihikari::shim::InvokeStart(entry, carrierDirectory.c_str(), nullptr);
