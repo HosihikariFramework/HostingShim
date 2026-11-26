@@ -57,8 +57,11 @@ archives; they are manual workflows.
   `hosihikari-server` and `plugins/hosihikari/`, and self-hosted Windows writes
   `hosihikari-server.exe` and `plugins/hosihikari/`.
 - The self-hosted Windows shim links nethost statically: the archive carries no `nethost.dll`.
-- The hosting contract version is 2: `Start`/`StartUnderParent` take
-  `{ const char* carrierDirectory; void* host; }` (FX-0065). Apply carrier-specific changes to every
+- The hosting contract version is 3: `Start`/`StartUnderParent` take
+  `{ const char* carrierDirectory; void* host; }` (FX-0065), and the entry set carries
+  `CarrierEnabled`, which a carrier calls from its own `onEnable` (FX-0067). Only the Endstone
+  carrier calls it today — it is the one whose enable order puts children first — but the version
+  check is shared, so every carrier moves with it. Apply carrier-specific changes to every
   affected carrier.
 - The LeviLamina carrier loads operator messages from `plugins/hosihikari/lang/*.json` through
   `ll::i18n`; `deploy.bat` and the release archive must carry all six catalogs.

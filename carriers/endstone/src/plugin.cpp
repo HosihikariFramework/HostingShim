@@ -176,7 +176,23 @@ void HosihikariPlugin::onLoad()
 
 void HosihikariPlugin::onEnable()
 {
-    // 不用做事：托管核心在 onLoad 里就起来了，子插件的启停由父级按自己的节奏驱动。
+    // 载体声明了 Startup，所以这里是子插件（PostWorld）之前 —— 父级已把 enabled 置位，
+    // 注册类调用从这一刻起被接受。能力层的等待闸门靠这个信号放开，不必再等下一 tick。
+    // 反过来也成立：不发信号的话，闸门只能靠 50 毫秒轮询，而轮询会先于这里抢到认领位、
+    // 再因为 init 窗口里 isPrimaryThread() 答假而把执行丢进调度器，最终落到子插件之后。
+    const auto component = getDataFolder() / CHARTEXT("Hosihikari.PluginManager.dll");
+    component_entry_point_fn enabled = nullptr;
+    if (hosihikari::shim::GetManagedEntry(component.c_str(), kEntryType, CHARTEXT("CarrierEnabled"), &enabled) == 0
+        && enabled != nullptr)
+    {
+        if (enabled(nullptr, 0) != 0)
+        {
+            getLogger().warning("启用信号分发失败，能力层可能停在等待状态");
+        }
+        return;
+    }
+
+    getLogger().warning("取不到启用信号入口，能力层可能停在等待状态");
 }
 
 void HosihikariPlugin::onDisable()
@@ -214,4 +230,11 @@ ENDSTONE_PLUGIN("hosihikari", "2.0.1", hosihikari::shim::endstone_carrier::Hosih
     prefix = "Hosihikari";
     description = "把 CLR 托管进 BDS，并把插件管理交给星光框架核心";
     authors = { "星光" };
+
+    // 子插件全由父级在 `enablePlugins()` 里按 plugins_ 的插入序启用，而载体是在自己的 onLoad
+    // 里发起嵌套轮的 —— 子插件先入列，载体最后入列。不抬这一级，子插件会在载体本身还没启用时
+    // 就跑到 OnEnable，`registerEvent` 与 `addTask` 全部被拒。Startup 让它随 init() 先启；
+    // 子插件保持 PostWorld。停用方向掰不动（disablePlugins 按插入序反向，载体仍然最先），
+    // 那条由 onDisable 里的 StopUnderParent 自行回收子插件来兜。
+    load = endstone::PluginLoadOrder::Startup;
 }

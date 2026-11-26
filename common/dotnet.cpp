@@ -19,7 +19,7 @@ namespace
 
 // 与 Hosihikari.NativeHostingEntry.HostingContractVersion 保持一致。
 // 入口方法集合、回调布局或生命周期约定不兼容变化时两边一起递增。
-constexpr int kHostingContractVersion = 2;
+constexpr int kHostingContractVersion = 3;
 
 void* g_hostfxr = nullptr;
 hostfxr_initialize_for_runtime_config_fn g_initializeForRuntimeConfig = nullptr;
