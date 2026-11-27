@@ -210,14 +210,21 @@ jobs:
             "-p:PluginAbstractionsProjectPath=$proj\Plugin.Abstractions\src\Hosihikari.Plugin.Abstractions.csproj",
             "-p:AbiProjectPath=$proj\Binding.Abi\src\Hosihikari.Binding.Abi\Hosihikari.Binding.Abi.csproj",
             "-p:EndstoneInteropProjectPath=$proj\Binding.Endstone\src\Hosihikari.Binding.Endstone.Interop\Hosihikari.Binding.Endstone.Interop.csproj",
-            "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj"
+            "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj",
+            "-p:LeviLaminaInteropProjectPath=$proj\Binding.LeviLamina\src\Hosihikari.Binding.LeviLamina.Interop\Hosihikari.Binding.LeviLamina.Interop.csproj",
+            "-p:LeviLaminaIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.LeviLamina\Hosihikari.Binding.LeviLamina.csproj"
           )
-          # 四个工程写进同一个输出目录；装配时按清单逐个核对，清单与载荷不会各说各话。
+          # 每个工程写进同一个输出目录；装配时按清单逐个核对，清单与载荷不会各说各话。
+          # 两个载体的同名共享层由同一次构建覆盖，来源唯一，谁后写都一样。
           foreach ($name in @(
               'Hosihikari.Carrier.Endstone.Bootstrap',
               'Hosihikari.Extension.Event.Endstone',
               'Hosihikari.Extension.Async.Endstone',
-              'Hosihikari.Extension.UI.Endstone')) {
+              'Hosihikari.Extension.UI.Endstone',
+              'Hosihikari.Carrier.LeviLamina.Bootstrap',
+              'Hosihikari.Extension.Event.LeviLamina',
+              # 没有组件，靠模块初始化器注册；没有别的工程会把它带出来，得自己编。
+              'Hosihikari.Extension.Async.LeviLamina')) {
             dotnet build "$proj\Capabilities\src\$name\$name.csproj" -c Release -o $out -v q --nologo @shared
             if ($LASTEXITCODE -ne 0) { throw "building $name failed" }
           }
