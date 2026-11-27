@@ -45,12 +45,14 @@ archives; they are manual workflows.
 - Release archives contain native files plus the carrier manifest (`hosihikari.json`). The managed
   core comes from the PluginManager release archive; carrier components and the service configurator
   are declared in the manifest and ship with the carrier.
-- The Windows Endstone archive also carries the projection payload: the managed shared layer, the
-  carrier components, the service configurator and the binding shim, built in `release.yml` from the
-  commits pinned in its `env`. Packaging copies exactly the assemblies the manifest declares and
-  fails when one is missing, so the manifest and the payload cannot drift apart. The LeviLamina,
-  Endstone Linux and self-hosted archives declare an empty `carrier` group until the projection
-  ships its platform-specific shim for them.
+- The Windows Endstone and LeviLamina archives also carry the projection payload: the managed
+  shared layer, the carrier components, the service configurator and the binding shim, built in
+  `release.yml` from the commits pinned in its `env`. Packaging copies exactly the assemblies the
+  manifest declares and fails when one is missing, so the manifest and the payload cannot drift
+  apart. `build.yml` runs the same payload loop on every pull request, because `release.yml` is
+  tag-triggered and would otherwise uncover a stale pin only at release time. The Endstone Linux
+  and self-hosted archives declare an empty `carrier` group until the projection ships its
+  platform-specific shim for them.
 - Every release archive extracts at the server root: LeviLamina writes `mods/hosihikari/`,
   Endstone Windows writes `plugins/hosihikari.dll`, `plugins/hosihikari/hosihikari.json` and
   `nethost.dll`, Endstone Linux writes `plugins/hosihikari.so`,
