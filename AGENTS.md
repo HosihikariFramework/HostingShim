@@ -50,9 +50,11 @@ archives; they are manual workflows.
   `release.yml` from the commits pinned in its `env`. Packaging copies exactly the assemblies the
   manifest declares and fails when one is missing, so the manifest and the payload cannot drift
   apart. `build.yml` runs the same payload loop on every pull request, because `release.yml` is
-  tag-triggered and would otherwise uncover a stale pin only at release time. The Endstone Linux
-  and self-hosted archives declare an empty `carrier` group until the projection ships its
-  platform-specific shim for them.
+  tag-triggered and would otherwise uncover a stale pin only at release time. That loop has to
+  build both binding shims, not just the managed assemblies: the two shims are native PE files and
+  are absent from `sharedAssemblies`, so a manifest-only check passes without them. Its last step
+  verifies both. The Endstone Linux and self-hosted archives declare an empty `carrier` group until
+  the projection ships its platform-specific shim for them.
 - Every release archive extracts at the server root: LeviLamina writes `mods/hosihikari/`,
   Endstone Windows writes `plugins/hosihikari.dll`, `plugins/hosihikari/hosihikari.json` and
   `nethost.dll`, Endstone Linux writes `plugins/hosihikari.so`,
