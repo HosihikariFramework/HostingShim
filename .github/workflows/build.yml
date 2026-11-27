@@ -410,25 +410,6 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "building $name failed" }
           }
 
-      # 清单里列的名字就是载荷里该有的文件；少一个就停下。自持面的清单仍是空载体组，
-      # 这里只核两个带载荷的载体。
-      - name: 清单核对
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $root = $env:GITHUB_WORKSPACE
-          $payload = Join-Path $root 'payload'
-          foreach ($manifest in @(
-              "$root\Shim\carriers\endstone\hosihikari.json",
-              "$root\Shim\carriers\levilamina\hosihikari.json")) {
-            $declared = (Get-Content $manifest -Raw | ConvertFrom-Json).carrier |
-              ForEach-Object { @($_.sharedAssemblies) + @($_.components.assembly) + @($_.bootstrap.assembly) } |
-              Where-Object { $_ } | Select-Object -Unique
-            foreach ($name in $declared) {
-              if (-not (Test-Path (Join-Path $payload $name))) { throw "the payload is missing $name" }
-            }
-          }
-
       # 垫片是载荷里唯一按载体头文件编出来的原生件；缺了它，两个载体的归档里那个
       # 原生 dll 就是空的。以下几步与 release.yml 同形：LLVM、两个依赖头文件的布局
       # 处理、各载体的头文件准备，都排在编垫片之前。
@@ -534,3 +515,22 @@ jobs:
             -Output "$ws\payload"
           if ($LASTEXITCODE -ne 0) { throw 'building the LeviLamina binding shim failed' }
 
+      # 载荷里的东西齐了没：清单声明的托管件逐个核，两个垫片按名字核 —— 垫片是原生
+      # PE，没有程序集清单，不在 sharedAssemblies 里，但它同样是载荷的一部分。
+      - name: 载荷核对
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          $payload = Join-Path $root 'payload'
+          foreach ($carrier in @(
+              @{ Manifest = "$root\Shim\carriers\endstone\hosihikari.json"; Shim = 'Hosihikari.Binding.Endstone.Shim.dll' },
+              @{ Manifest = "$root\Shim\carriers\levilamina\hosihikari.json"; Shim = 'Hosihikari.Binding.LeviLamina.Shim.dll' })) {
+            $declared = (Get-Content $carrier.Manifest -Raw | ConvertFrom-Json).carrier |
+              ForEach-Object { @($_.sharedAssemblies) + @($_.components.assembly) + @($_.bootstrap.assembly) } |
+              Where-Object { $_ } | Select-Object -Unique
+            foreach ($name in $declared) {
+              if (-not (Test-Path (Join-Path $payload $name))) { throw "the payload is missing $name" }
+            }
+            if (-not (Test-Path (Join-Path $payload $carrier.Shim))) { throw "the payload is missing $($carrier.Shim)" }
+          }
