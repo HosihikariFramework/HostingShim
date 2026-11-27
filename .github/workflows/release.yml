@@ -12,13 +12,13 @@ permissions:
 # 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 Capabilities 的 verify.yml 成对改。
 env:
-  CAPABILITIES_REF: 5f7ab9d099580b7b6cfc00e947a888442b9894c8
+  CAPABILITIES_REF: 194a6b859cfc7ff6fb53d61a2d5ca93f59284e0e
   BINDING_IDIOMATIC_REF: 52642a46b112f0f14fb4d6aed85b4426ffbd376d
   BINDING_ABI_REF: 2ee2a0d989f8cd1690077c1426ccf4beb1ec92c3
   BINDING_ENDSTONE_REF: 057b51506b035da5ff95a866884bf2c12f293035
-  BINDING_GENERATOR_REF: 087ca3219df6db453eb839c6ec84b5c317ca73d6
-  BINDING_LEVILAMINA_REF: e34d4d84315f77e65c24e452728fc6daca4a2edb
-  PLUGIN_ABSTRACTIONS_REF: fc1d8ee1106e4ebd88ecfb5a9d767826818bba6e
+  BINDING_GENERATOR_REF: e4d4087868f0ca4e8d85bf5b1a1f4945e08541f8
+  BINDING_LEVILAMINA_REF: 9cb8c3cd446c00fc4d601c50bbfbd922205b207f
+  PLUGIN_ABSTRACTIONS_REF: c350a23a2ce33b18c2355b4ce5767ac862608fe8
   ENDSTONE_REF: v0.11.16
   # 垫片对 LeviLamina 编译要有它的导入库，而导入库只有真编一遍才有。
   LEVILAMINA_REF: v26.60.9
@@ -406,7 +406,6 @@ jobs:
             }
           }
 
-          # 载体清单声明了什么，包里就得有什么：清单与载荷一起发，少一个都不行。
           # 载体清单声明了什么，包里就得有什么：清单与载荷一起发，少一个都不行。
           # 垫片不在清单里（原生 PE，没有程序集清单），单独断言。
           foreach ($variant in @(
