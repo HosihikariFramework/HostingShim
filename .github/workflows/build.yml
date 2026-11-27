@@ -266,3 +266,118 @@ jobs:
           carriers\levilamina\deploy.bat "%RUNNER_TEMP%\stage-levilamina" shim-only
           if not exist "%RUNNER_TEMP%\stage-levilamina\mods\hosihikari\hosihikari.json" exit /b 1
           if not exist "%RUNNER_TEMP%\stage-levilamina\mods\hosihikari\hosihikari.dll" exit /b 1
+
+  # 投影载荷整条链（FX-0028）只有 release.yml 会跑，而它是标签触发的 —— PR 阶段
+  # 没有任何东西证明钉值还能编、清单里的文件还产得出来。这里按同一段循环预先跑一遍，
+  # 红了在合并前就能看到，不必等到打标签。
+  payload:
+    name: 投影载荷
+    runs-on: windows-latest
+    # 钉值与 release.yml 的 env 逐字相同，那边改了这里跟着改。两处都是跨仓提交，
+    # 抄错一个就是 PR 绿、打标签才炸。
+    env:
+      CAPABILITIES_REF: 386fadce0c380cb6e8d2847d2e5eba5f05756c17
+      BINDING_IDIOMATIC_REF: 52642a46b112f0f14fb4d6aed85b4426ffbd376d
+      BINDING_ABI_REF: 2ee2a0d989f8cd1690077c1426ccf4beb1ec92c3
+      BINDING_ENDSTONE_REF: 057b51506b035da5ff95a866884bf2c12f293035
+      BINDING_LEVILAMINA_REF: d43539420541b8ca3928ef1dd49c516e5051e0db
+      PLUGIN_ABSTRACTIONS_REF: c350a23a2ce33b18c2355b4ce5767ac862608fe8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: Shim
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Capabilities
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/Capabilities
+          path: Projection/Capabilities
+          ref: ${{ env.CAPABILITIES_REF }}
+
+      - name: 投影绑定层
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/BindingIdiomatic
+          path: Projection/Binding.Idiomatic
+          ref: ${{ env.BINDING_IDIOMATIC_REF }}
+
+      - name: 投影 ABI 契约
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/BindingAbi
+          path: Projection/Binding.Abi
+          ref: ${{ env.BINDING_ABI_REF }}
+
+      - name: Endstone 绑定
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/EndstoneBinding
+          path: Projection/Binding.Endstone
+          ref: ${{ env.BINDING_ENDSTONE_REF }}
+
+      - name: LeviLamina 绑定
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/LeviLaminaBinding
+          path: Projection/Binding.LeviLamina
+          ref: ${{ env.BINDING_LEVILAMINA_REF }}
+
+      - name: 契约仓
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariFramework/PluginAbstractions
+          path: Projection/Plugin.Abstractions
+          ref: ${{ env.PLUGIN_ABSTRACTIONS_REF }}
+
+      # 与 release.yml 的“投影托管载荷”一步同形：同一组跨仓属性、同一份工程名单。
+      # 共享层两个载体共用，一次构建覆盖，来源唯一。
+      - name: 投影托管载荷
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ws = $env:GITHUB_WORKSPACE
+          $proj = Join-Path $ws 'Projection'
+          $out = Join-Path $ws 'payload'
+          $shared = @(
+            "-p:PluginAbstractionsProjectPath=$proj\Plugin.Abstractions\src\Hosihikari.Plugin.Abstractions.csproj",
+            "-p:AbiProjectPath=$proj\Binding.Abi\src\Hosihikari.Binding.Abi\Hosihikari.Binding.Abi.csproj",
+            "-p:EndstoneInteropProjectPath=$proj\Binding.Endstone\src\Hosihikari.Binding.Endstone.Interop\Hosihikari.Binding.Endstone.Interop.csproj",
+            "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj",
+            "-p:LeviLaminaInteropProjectPath=$proj\Binding.LeviLamina\src\Hosihikari.Binding.LeviLamina.Interop\Hosihikari.Binding.LeviLamina.Interop.csproj",
+            "-p:LeviLaminaIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.LeviLamina\Hosihikari.Binding.LeviLamina.csproj"
+          )
+          foreach ($name in @(
+              'Hosihikari.Carrier.Endstone.Bootstrap',
+              'Hosihikari.Extension.Event.Endstone',
+              'Hosihikari.Extension.Async.Endstone',
+              'Hosihikari.Extension.UI.Endstone',
+              'Hosihikari.Carrier.LeviLamina.Bootstrap',
+              'Hosihikari.Extension.Event.LeviLamina',
+              # 没有组件，靠模块初始化器注册；没有别的工程会把它带出来，得自己编。
+              'Hosihikari.Extension.Async.LeviLamina')) {
+            dotnet build "$proj\Capabilities\src\$name\$name.csproj" -c Release -o $out -v q --nologo @shared
+            if ($LASTEXITCODE -ne 0) { throw "building $name failed" }
+          }
+
+      # 清单里列的名字就是载荷里该有的文件；少一个就停下。自持面的清单仍是空载体组，
+      # 这里只核两个带载荷的载体。
+      - name: 清单核对
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = $env:GITHUB_WORKSPACE
+          $payload = Join-Path $root 'payload'
+          foreach ($manifest in @(
+              "$root\Shim\carriers\endstone\hosihikari.json",
+              "$root\Shim\carriers\levilamina\hosihikari.json")) {
+            $declared = (Get-Content $manifest -Raw | ConvertFrom-Json).carrier |
+              ForEach-Object { @($_.sharedAssemblies) + @($_.components.assembly) + @($_.bootstrap.assembly) } |
+              Where-Object { $_ } | Select-Object -Unique
+            foreach ($name in $declared) {
+              if (-not (Test-Path (Join-Path $payload $name))) { throw "the payload is missing $name" }
+            }
+          }
