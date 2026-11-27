@@ -292,6 +292,9 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # LeviLamina 只发 xmake 包，导入库只有用它自己的构建真编一遍才有。
+      - uses: xmake-io/github-action-setup-xmake@v1
+
       - name: Capabilities
         uses: actions/checkout@v7
         with:
