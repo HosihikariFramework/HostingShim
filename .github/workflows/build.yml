@@ -276,7 +276,7 @@ jobs:
     # 钉值与 release.yml 的 env 逐字相同，那边改了这里跟着改。两处都是跨仓提交，
     # 抄错一个就是 PR 绿、打标签才炸。
     env:
-      CAPABILITIES_REF: 386fadce0c380cb6e8d2847d2e5eba5f05756c17
+      CAPABILITIES_REF: 0a50fcb817418123351cec9b5b21d3ea7d4adc17
       BINDING_IDIOMATIC_REF: 52642a46b112f0f14fb4d6aed85b4426ffbd376d
       BINDING_ABI_REF: 2ee2a0d989f8cd1690077c1426ccf4beb1ec92c3
       BINDING_ENDSTONE_REF: 057b51506b035da5ff95a866884bf2c12f293035
