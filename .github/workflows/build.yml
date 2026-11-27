@@ -292,8 +292,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # LeviLamina 只发 xmake 包，导入库只有用它自己的构建真编一遍才有。
+      # LeviLamina 只发 xmake 包，导入库只有用它自己的构建真编一遍才有。它按 clang-cl
+      # 编，所以 PATH 上得先有 clang（垫片自己那份 23.1.0 另下，见后）。
       - uses: xmake-io/github-action-setup-xmake@v1
+
+      - name: Setup LLVM
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
 
       - name: Capabilities
         uses: actions/checkout@v7
