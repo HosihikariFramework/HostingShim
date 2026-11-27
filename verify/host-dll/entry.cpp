@@ -46,13 +46,13 @@ std::wstring Widen(const char* utf8)
 {
     if (utf8 == nullptr)
     {
-        return { };
+        return {};
     }
 
     const int length = ::MultiByteToWideChar(CP_UTF8, 0, utf8, -1, nullptr, 0);
     if (length <= 0)
     {
-        return { };
+        return {};
     }
 
     std::wstring result(static_cast<size_t>(length), L'\0');
@@ -80,15 +80,15 @@ SHIM_EXPORT int HosihikariShimStart(const char* managedDirectory)
         directory.push_back('/');
     }
 
-    const std::wstring configPath = Widen((directory + "Hosihikari.PluginManager.runtimeconfig.json").c_str());
+    const std::wstring configPath   = Widen((directory + "Hosihikari.PluginManager.runtimeconfig.json").c_str());
     const std::wstring assemblyPath = Widen((directory + "Hosihikari.PluginManager.dll").c_str());
-    const std::wstring typeName = Widen("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
-    const std::wstring methodName = Widen("Start");
+    const std::wstring typeName     = Widen("Hosihikari.NativeHostingEntry, Hosihikari.PluginManager");
+    const std::wstring methodName   = Widen("Start");
     Trace("02 路径已备好");
 
     component_entry_point_fn entry = nullptr;
-    const int code = hosihikari::shim::StartRuntime(
-        configPath.c_str(), assemblyPath.c_str(), typeName.c_str(), methodName.c_str(), &entry);
+    const int code = hosihikari::shim::StartRuntime(configPath.c_str(), assemblyPath.c_str(), typeName.c_str(),
+                                                    methodName.c_str(), &entry);
     Trace("03 启动序列已走完");
 
     if (code != 0 || entry == nullptr)

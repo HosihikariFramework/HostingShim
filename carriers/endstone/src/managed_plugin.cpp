@@ -17,7 +17,9 @@ bool deliver(component_entry_point_fn entry, const std::string& text)
 } // namespace
 
 ManagedPlugin::ManagedPlugin(std::string name, endstone::PluginDescription description, ManagedPluginEntries entries)
-    : name_(std::move(name)), description_(std::move(description)), entries_(entries)
+    : name_(std::move(name))
+    , description_(std::move(description))
+    , entries_(entries)
 {
 }
 

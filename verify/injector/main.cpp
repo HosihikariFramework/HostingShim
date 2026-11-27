@@ -33,8 +33,8 @@ uintptr_t RemoteModuleBase(DWORD processId, const char* moduleName)
         return 0;
     }
 
-    MODULEENTRY32 entry { };
-    entry.dwSize = sizeof(entry);
+    MODULEENTRY32 entry{};
+    entry.dwSize   = sizeof(entry);
     uintptr_t base = 0;
     if (::Module32First(snapshot, &entry))
     {
@@ -55,8 +55,8 @@ uintptr_t RemoteModuleBase(DWORD processId, const char* moduleName)
 /// 在目标进程里分配一块内存并写入内容。
 void* WriteToProcess(HANDLE process, const std::string& text)
 {
-    const SIZE_T size = text.size() + 1;
-    void* remote = ::VirtualAllocEx(process, nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    const SIZE_T size   = text.size() + 1;
+    void*        remote = ::VirtualAllocEx(process, nullptr, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (remote == nullptr)
     {
         return nullptr;
@@ -90,27 +90,18 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    const std::string target = argv[1];
+    const std::string target           = argv[1];
     const std::string workingDirectory = argv[2];
-    const std::string dllPath = argv[3];
-    const std::string argument = argv[4];
+    const std::string dllPath          = argv[3];
+    const std::string argument         = argv[4];
 
-    STARTUPINFOA startup { };
+    STARTUPINFOA startup{};
     startup.cb = sizeof(startup);
-    PROCESS_INFORMATION process { };
+    PROCESS_INFORMATION process{};
 
     std::string commandLine = target;
-    if (!::CreateProcessA(
-            nullptr,
-            commandLine.data(),
-            nullptr,
-            nullptr,
-            FALSE,
-            CREATE_SUSPENDED,
-            nullptr,
-            workingDirectory.c_str(),
-            &startup,
-            &process))
+    if (!::CreateProcessA(nullptr, commandLine.data(), nullptr, nullptr, FALSE, CREATE_SUSPENDED, nullptr,
+                          workingDirectory.c_str(), &startup, &process))
     {
         return Report("挂起启动目标进程") ? 0 : 1;
     }
@@ -118,11 +109,11 @@ int main(int argc, char** argv)
     std::printf("PASS  挂起启动 %s（pid %lu）\n", target.c_str(), process.dwProcessId);
 
     // ① 目标进程里加载我们的 DLL。
-    const std::string dllName = dllPath.substr(dllPath.find_last_of("/\\") + 1);
-    void* remoteDllPath = WriteToProcess(process.hProcess, dllPath);
-    HMODULE kernel32 = ::GetModuleHandleA("kernel32.dll");
-    auto loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(::GetProcAddress(kernel32, "LoadLibraryA"));
-    DWORD loaded = 0;
+    const std::string dllName       = dllPath.substr(dllPath.find_last_of("/\\") + 1);
+    void*             remoteDllPath = WriteToProcess(process.hProcess, dllPath);
+    HMODULE           kernel32      = ::GetModuleHandleA("kernel32.dll");
+    auto  loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(::GetProcAddress(kernel32, "LoadLibraryA"));
+    DWORD loaded      = 0;
     if (remoteDllPath == nullptr || !RunInProcess(process.hProcess, loadLibrary, remoteDllPath, &loaded) || loaded == 0)
     {
         ::TerminateProcess(process.hProcess, 1);
@@ -146,7 +137,7 @@ int main(int argc, char** argv)
         return Report("本地加载同一份 DLL") ? 0 : 1;
     }
 
-    const auto localBase = reinterpret_cast<uintptr_t>(localModule);
+    const auto localBase   = reinterpret_cast<uintptr_t>(localModule);
     const auto localExport = reinterpret_cast<uintptr_t>(::GetProcAddress(localModule, "HosihikariShimStart"));
     if (localExport == 0)
     {
@@ -163,8 +154,8 @@ int main(int argc, char** argv)
         return Report("把参数写进目标进程") ? 0 : 1;
     }
 
-    auto remoteEntry = reinterpret_cast<LPTHREAD_START_ROUTINE>(remoteBase + (localExport - localBase));
-    HANDLE caller = ::CreateRemoteThread(process.hProcess, nullptr, 0, remoteEntry, remoteArgument, 0, nullptr);
+    auto   remoteEntry = reinterpret_cast<LPTHREAD_START_ROUTINE>(remoteBase + (localExport - localBase));
+    HANDLE caller      = ::CreateRemoteThread(process.hProcess, nullptr, 0, remoteEntry, remoteArgument, 0, nullptr);
     if (caller == nullptr)
     {
         ::TerminateProcess(process.hProcess, 1);

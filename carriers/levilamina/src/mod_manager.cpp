@@ -28,13 +28,14 @@ std::string packageDirectory(const std::string& name)
     // 名字是 UTF-8；path 用 u8 构造，别让它在窄字符那步按系统代码页转。
     const auto path = std::filesystem::absolute(ll::mod::getModsRoot() / ll::string_utils::sv2u8sv(name));
     const auto utf8 = path.u8string();
-    return std::string { utf8.begin(), utf8.end() };
+    return std::string{utf8.begin(), utf8.end()};
 }
 
 } // namespace
 
 HosihikariModManager::HosihikariModManager(ManagedPluginEntries entries)
-    : ll::mod::ModManager("hosihikari"), mEntries(entries)
+    : ll::mod::ModManager("hosihikari")
+    , mEntries(entries)
 {
 }
 
@@ -52,8 +53,12 @@ ll::Expected<> HosihikariModManager::load(ll::mod::Manifest manifest)
     // 它的 `enable`/`disable` 直接解引用、`show` 之类的读也读不到（实测会 segfault）。
     // 启停回调转发给托管侧：那是插件作者写的 OnEnable / OnDisable。
     auto mod = std::make_shared<ll::mod::Mod>(std::move(manifest));
-    mod->onEnable([this, name](ll::mod::Mod&) { return deliver(mEntries.enable, name) == 0; });
-    mod->onDisable([this, name](ll::mod::Mod&) { return deliver(mEntries.disable, name) == 0; });
+    mod->onEnable([this, name](ll::mod::Mod&) {
+        return deliver(mEntries.enable, name) == 0;
+    });
+    mod->onDisable([this, name](ll::mod::Mod&) {
+        return deliver(mEntries.disable, name) == 0;
+    });
     addMod(name, mod);
 
     // 父级对原生 mod 就是这么做的（`Mod::onLoad`）：装载时服务器已经在跑就顺手启用。
@@ -64,7 +69,7 @@ ll::Expected<> HosihikariModManager::load(ll::mod::Manifest manifest)
         enable(name);
     }
 
-    return { };
+    return {};
 }
 
 void HosihikariModManager::removeFromParent(std::string_view name)
@@ -76,15 +81,15 @@ ll::Expected<> HosihikariModManager::unload(std::string_view name)
 {
     // 托管侧的答案只有两种：回收验证过了，或者放下了但还没通过。后者如实报失败 ——
     // 它确实还没卸干净，而再问一次就是重新验证（ADR-0004）。
-    if (deliver(mEntries.unload, std::string { name }) != 0)
+    if (deliver(mEntries.unload, std::string{name}) != 0)
     {
         return ll::makeI18nStringError<"Hosihikari: {0} has been released, but reclamation verification has not "
-                                       "passed yet">(std::string { name });
+                                       "passed yet">(std::string{name});
     }
 
     // 确认回收之后才从父级的账上摘掉 —— 摘早了，父级就看不见一个其实还在的插件。
     eraseMod(name);
-    return { };
+    return {};
 }
 
 } // namespace hosihikari::shim::levilamina

@@ -35,8 +35,10 @@ int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath);
 
 /// 载入托管程序集并取回入口的函数指针。
 /// 目标方法须标 `[UnmanagedCallersOnly]` —— 走 UNMANAGEDCALLERSONLY_METHOD 可以省掉封送桩。
-int GetManagedEntry(
-    const char_t* assemblyPath, const char_t* typeName, const char_t* methodName, component_entry_point_fn* entryPoint);
+int GetManagedEntry(const char_t*             assemblyPath,
+                    const char_t*             typeName,
+                    const char_t*             methodName,
+                    component_entry_point_fn* entryPoint);
 
 /// 启动参数（ADR-0065）：载体包目录与不透明的宿主句柄。
 ///
@@ -47,23 +49,22 @@ int GetManagedEntry(
 struct StartArgs
 {
     const char* carrierDirectory;
-    void* host;
+    void*       host;
 };
 
 /// 按契约 2 调托管启动入口：参数块就是上面的结构。
 inline int InvokeStart(component_entry_point_fn entry, const char* carrierDirectory, void* host)
 {
-    StartArgs args { carrierDirectory, host };
+    StartArgs args{carrierDirectory, host};
     return entry(&args, static_cast<int>(sizeof(args)));
 }
 
 /// 把启动序列一次走完。任一步失败即返回它的错误码，不继续。
 /// 核心缺少契约版本入口时返回 -2；版本与垫片不一致时返回 -3。
-int StartRuntime(
-    const char_t* runtimeConfigPath,
-    const char_t* assemblyPath,
-    const char_t* typeName,
-    const char_t* methodName,
-    component_entry_point_fn* entryPoint);
+int StartRuntime(const char_t*             runtimeConfigPath,
+                 const char_t*             assemblyPath,
+                 const char_t*             typeName,
+                 const char_t*             methodName,
+                 component_entry_point_fn* entryPoint);
 
 } // namespace hosihikari::shim

@@ -21,11 +21,11 @@ namespace
 // 入口方法集合、回调布局或生命周期约定不兼容变化时两边一起递增。
 constexpr int kHostingContractVersion = 3;
 
-void* g_hostfxr = nullptr;
-hostfxr_initialize_for_runtime_config_fn g_initializeForRuntimeConfig = nullptr;
-hostfxr_get_runtime_delegate_fn g_getRuntimeDelegate = nullptr;
-hostfxr_close_fn g_close = nullptr;
-hostfxr_set_runtime_property_value_fn g_setRuntimeProperty = nullptr;
+void*                                     g_hostfxr                           = nullptr;
+hostfxr_initialize_for_runtime_config_fn  g_initializeForRuntimeConfig        = nullptr;
+hostfxr_get_runtime_delegate_fn           g_getRuntimeDelegate                = nullptr;
+hostfxr_close_fn                          g_close                             = nullptr;
+hostfxr_set_runtime_property_value_fn     g_setRuntimeProperty                = nullptr;
 load_assembly_and_get_function_pointer_fn g_loadAssemblyAndGetFunctionPointer = nullptr;
 
 // 跨平台差异之一（ADR-0005）：Windows 用 LoadLibraryW，Linux 用 dlopen。
@@ -82,12 +82,12 @@ int LoadHostfxr()
     g_initializeForRuntimeConfig =
         LoadSymbol<hostfxr_initialize_for_runtime_config_fn>(g_hostfxr, "hostfxr_initialize_for_runtime_config");
     g_getRuntimeDelegate = LoadSymbol<hostfxr_get_runtime_delegate_fn>(g_hostfxr, "hostfxr_get_runtime_delegate");
-    g_close = LoadSymbol<hostfxr_close_fn>(g_hostfxr, "hostfxr_close");
+    g_close              = LoadSymbol<hostfxr_close_fn>(g_hostfxr, "hostfxr_close");
     g_setRuntimeProperty =
         LoadSymbol<hostfxr_set_runtime_property_value_fn>(g_hostfxr, "hostfxr_set_runtime_property_value");
 
-    if (g_initializeForRuntimeConfig == nullptr || g_getRuntimeDelegate == nullptr || g_close == nullptr
-        || g_setRuntimeProperty == nullptr)
+    if (g_initializeForRuntimeConfig == nullptr || g_getRuntimeDelegate == nullptr || g_close == nullptr ||
+        g_setRuntimeProperty == nullptr)
     {
         return -1;
     }
@@ -106,25 +106,25 @@ namespace
 std::basic_string<char_t> DirectoryOf(const char_t* path)
 {
     std::basic_string<char_t> text = path == nullptr ? std::basic_string<char_t>() : std::basic_string<char_t>(path);
-    const size_t separator = text.find_last_of(CHARTEXT("/\\"));
+    const size_t              separator = text.find_last_of(CHARTEXT("/\\"));
     if (separator == std::basic_string<char_t>::npos)
     {
-        return { };
+        return {};
     }
 
-    return std::filesystem::absolute(std::filesystem::path { text.substr(0, separator) }).native();
+    return std::filesystem::absolute(std::filesystem::path{text.substr(0, separator)}).native();
 }
 
 } // namespace
 
 int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath)
 {
-    hostfxr_initialize_parameters parameters { };
-    parameters.size = sizeof(parameters);
+    hostfxr_initialize_parameters parameters{};
+    parameters.size      = sizeof(parameters);
     parameters.host_path = hostPath;
 
     hostfxr_handle context = nullptr;
-    int rc = g_initializeForRuntimeConfig(runtimeConfigPath, &parameters, &context);
+    int            rc      = g_initializeForRuntimeConfig(runtimeConfigPath, &parameters, &context);
 
     // 正向的返回码也是成功：宿主（或别的框架）已经兼容地初始化过运行时时，
     // 这里返回的是 Success_HostAlreadyInitialized —— 复用那个运行时正是我们要的。
@@ -144,17 +144,15 @@ int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath)
     // 所以就在这儿，取委托之前。返回值 rc > 0 表示运行时已经由上一次启动初始化过（Endstone
     // reload 就是这条路径），属性已经设过，也不能再设。
     const std::basic_string<char_t> componentDirectory = DirectoryOf(hostPath);
-    if (rc == 0 && !componentDirectory.empty()
-        && g_setRuntimeProperty(context, CHARTEXT("APP_CONTEXT_BASE_DIRECTORY"), componentDirectory.c_str()) != 0)
+    if (rc == 0 && !componentDirectory.empty() &&
+        g_setRuntimeProperty(context, CHARTEXT("APP_CONTEXT_BASE_DIRECTORY"), componentDirectory.c_str()) != 0)
     {
         g_close(context);
         return -1;
     }
 
-    rc = g_getRuntimeDelegate(
-        context,
-        hdt_load_assembly_and_get_function_pointer,
-        reinterpret_cast<void**>(&g_loadAssemblyAndGetFunctionPointer));
+    rc = g_getRuntimeDelegate(context, hdt_load_assembly_and_get_function_pointer,
+                              reinterpret_cast<void**>(&g_loadAssemblyAndGetFunctionPointer));
     g_close(context);
 
     if (rc < 0 || g_loadAssemblyAndGetFunctionPointer == nullptr)
@@ -165,12 +163,14 @@ int InitializeRuntime(const char_t* runtimeConfigPath, const char_t* hostPath)
     return 0;
 }
 
-int GetManagedEntry(
-    const char_t* assemblyPath, const char_t* typeName, const char_t* methodName, component_entry_point_fn* entryPoint)
+int GetManagedEntry(const char_t*             assemblyPath,
+                    const char_t*             typeName,
+                    const char_t*             methodName,
+                    component_entry_point_fn* entryPoint)
 {
     void* address = nullptr;
-    int rc = g_loadAssemblyAndGetFunctionPointer(
-        assemblyPath, typeName, methodName, UNMANAGEDCALLERSONLY_METHOD, nullptr, &address);
+    int   rc      = g_loadAssemblyAndGetFunctionPointer(assemblyPath, typeName, methodName, UNMANAGEDCALLERSONLY_METHOD,
+                                                        nullptr, &address);
 
     if (rc < 0 || address == nullptr)
     {
@@ -181,12 +181,11 @@ int GetManagedEntry(
     return 0;
 }
 
-int StartRuntime(
-    const char_t* runtimeConfigPath,
-    const char_t* assemblyPath,
-    const char_t* typeName,
-    const char_t* methodName,
-    component_entry_point_fn* entryPoint)
+int StartRuntime(const char_t*             runtimeConfigPath,
+                 const char_t*             assemblyPath,
+                 const char_t*             typeName,
+                 const char_t*             methodName,
+                 component_entry_point_fn* entryPoint)
 {
     int rc = LoadHostfxr();
     if (rc != 0)
