@@ -179,6 +179,9 @@ bool ShimMod::load()
     LogSink sink{&logBridge, nullptr};
     setLogSink(reinterpret_cast<char*>(&sink), sizeof(sink));
 
+    // 载体包目录是模组自己的目录（ADR-0065）；核心可能在 plugins/ 下的回退位置，两者不同。
+    // 取绝对路径：父级给的 mods 根是相对的，托管侧会拿它拼清单路径。
+    //
     // 宿主句柄是本模组自己的模块句柄：LeviLamina 的 addListener 要求监听器带着一个可锁的
     // mod，而 director 的构造参数默认值在垫片里求值，那时 NativeMod::current() 拿到的是垫片
     // 自己的模块，只有它登记过的模块才解析得出来。把载体模组的句柄递过去，监听器才锁得住。

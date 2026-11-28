@@ -12,13 +12,16 @@ permissions:
 # 投影载荷（FX-0028）的跨仓提交钉在这里：载体归档里的托管共享层、载体组件
 # 与绑定垫片全部按这些提交构建。升版时与 Capabilities 的 verify.yml 成对改。
 env:
-  CAPABILITIES_REF: 5f7ab9d099580b7b6cfc00e947a888442b9894c8
+  CAPABILITIES_REF: 0a50fcb817418123351cec9b5b21d3ea7d4adc17
   BINDING_IDIOMATIC_REF: 52642a46b112f0f14fb4d6aed85b4426ffbd376d
   BINDING_ABI_REF: 2ee2a0d989f8cd1690077c1426ccf4beb1ec92c3
   BINDING_ENDSTONE_REF: 057b51506b035da5ff95a866884bf2c12f293035
-  BINDING_GENERATOR_REF: 087ca3219df6db453eb839c6ec84b5c317ca73d6
-  PLUGIN_ABSTRACTIONS_REF: fc1d8ee1106e4ebd88ecfb5a9d767826818bba6e
+  BINDING_GENERATOR_REF: 9d2366a5943f59603771112b4012c8834fc2ddaf
+  BINDING_LEVILAMINA_REF: 0ba13db2f1fa80db9aa67816f3ce50adbebdeb4f
+  PLUGIN_ABSTRACTIONS_REF: c350a23a2ce33b18c2355b4ce5767ac862608fe8
   ENDSTONE_REF: v0.11.16
+  # 垫片对 LeviLamina 编译要有它的导入库，而导入库只有真编一遍才有。
+  LEVILAMINA_REF: v26.60.9
 
 jobs:
   windows-assets:
@@ -108,6 +111,13 @@ jobs:
           path: Projection/Binding.Endstone
           ref: ${{ env.BINDING_ENDSTONE_REF }}
 
+      - name: LeviLamina 绑定
+        uses: actions/checkout@v7
+        with:
+          repository: HosihikariProjection/LeviLaminaBinding
+          path: Projection/Binding.LeviLamina
+          ref: ${{ env.BINDING_LEVILAMINA_REF }}
+
       - name: 绑定生成器
         uses: actions/checkout@v7
         with:
@@ -129,6 +139,14 @@ jobs:
           repository: EndstoneMC/endstone
           path: Projection/Third/Endstone
           ref: ${{ env.ENDSTONE_REF }}
+
+      # LeviLamina 垫片不用它自己的头文件，用 xmake 产出的编译参数与导入库。
+      - name: LeviLamina 源码
+        uses: actions/checkout@v7
+        with:
+          repository: LiteLDev/LeviLamina
+          path: Projection/Third/LeviLamina
+          ref: ${{ env.LEVILAMINA_REF }}
 
       - name: expected-lite 头文件
         uses: actions/checkout@v7
@@ -192,14 +210,21 @@ jobs:
             "-p:PluginAbstractionsProjectPath=$proj\Plugin.Abstractions\src\Hosihikari.Plugin.Abstractions.csproj",
             "-p:AbiProjectPath=$proj\Binding.Abi\src\Hosihikari.Binding.Abi\Hosihikari.Binding.Abi.csproj",
             "-p:EndstoneInteropProjectPath=$proj\Binding.Endstone\src\Hosihikari.Binding.Endstone.Interop\Hosihikari.Binding.Endstone.Interop.csproj",
-            "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj"
+            "-p:EndstoneIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.Endstone\Hosihikari.Binding.Endstone.csproj",
+            "-p:LeviLaminaInteropProjectPath=$proj\Binding.LeviLamina\src\Hosihikari.Binding.LeviLamina.Interop\Hosihikari.Binding.LeviLamina.Interop.csproj",
+            "-p:LeviLaminaIdiomaticProjectPath=$proj\Binding.Idiomatic\src\Hosihikari.Binding.LeviLamina\Hosihikari.Binding.LeviLamina.csproj"
           )
-          # 四个工程写进同一个输出目录；装配时按清单逐个核对，清单与载荷不会各说各话。
+          # 每个工程写进同一个输出目录；装配时按清单逐个核对，清单与载荷不会各说各话。
+          # 两个载体的同名共享层由同一次构建覆盖，来源唯一，谁后写都一样。
           foreach ($name in @(
               'Hosihikari.Carrier.Endstone.Bootstrap',
               'Hosihikari.Extension.Event.Endstone',
               'Hosihikari.Extension.Async.Endstone',
-              'Hosihikari.Extension.UI.Endstone')) {
+              'Hosihikari.Extension.UI.Endstone',
+              'Hosihikari.Carrier.LeviLamina.Bootstrap',
+              'Hosihikari.Extension.Event.LeviLamina',
+              # 没有组件，靠模块初始化器注册；没有别的工程会把它带出来，得自己编。
+              'Hosihikari.Extension.Async.LeviLamina')) {
             dotnet build "$proj\Capabilities\src\$name\$name.csproj" -c Release -o $out -v q --nologo @shared
             if ($LASTEXITCODE -ne 0) { throw "building $name failed" }
           }
@@ -241,6 +266,39 @@ jobs:
             -Output "$ws\payload"
           if ($LASTEXITCODE -ne 0) { throw 'building the Endstone binding shim failed' }
 
+      # 垫片要对着 LeviLamina 的头文件与导入库编译，而导入库只有真编一遍载体才有。
+      # compile_commands.json 由下面这条命令产出，垫片脚本从里面取编译参数。
+      - name: 构建 LeviLamina 源码
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ll = Join-Path $env:GITHUB_WORKSPACE 'Projection\Third\LeviLamina'
+          Push-Location $ll
+          try {
+            # 发布链只需要头文件与导入库，测试与工具不必编。
+            xmake f -y -a x64 -m release -p windows --target_type=server
+            if ($LASTEXITCODE -ne 0) { throw 'configuring LeviLamina failed' }
+            xmake build -j8 LeviLamina
+            if ($LASTEXITCODE -ne 0) { throw 'building LeviLamina failed' }
+            xmake project -k compile_commands
+            if ($LASTEXITCODE -ne 0) { throw 'writing compile_commands.json failed' }
+          }
+          finally {
+            Pop-Location
+          }
+
+      - name: 构建 LeviLamina 绑定垫片
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ws = $env:GITHUB_WORKSPACE
+          & "$ws\Projection\Binding.LeviLamina\native\BindingShim\build.ps1" `
+            -LeviLaminaRoot "$ws\Projection\Third\LeviLamina" `
+            -GeneratorRoot "$ws\Projection\Binding.Generator" `
+            -LlvmRoot "$ws\llvm" `
+            -Output "$ws\payload"
+          if ($LASTEXITCODE -ne 0) { throw 'building the LeviLamina binding shim failed' }
+
       # 用各自的 deploy 脚本铺到空目录：铺出来的就是解压到服务端根目录期望的形状，
       # 发布物与本地部署因此不会悄悄分叉。
       - name: 装配 Windows 附件
@@ -257,21 +315,27 @@ jobs:
           & "$root\Shim\carriers\selfhosted-windows\deploy.ps1" -ServerRoot "$root\stage-selfhosted-windows" -ShimOnly -Version $version
 
           # 投影载荷按载体清单入包（FX-0028）：清单里列的名字就是包里该有的文件，
-          # 少一个就停下——清单与载荷不能各说各话。LeviLamina 与自持面的清单还是空载体组。
-          $carrier = (Get-Content "$root\Shim\carriers\endstone\hosihikari.json" -Raw | ConvertFrom-Json).carrier
-          $declared = @($carrier.sharedAssemblies) + @($carrier.components.assembly) + @($carrier.bootstrap.assembly) |
-            Where-Object { $_ } | Select-Object -Unique
+          # 少一个就停下——清单与载荷不能各说各话。两个载体共用同一份载荷，只是落到
+          # 各自的目录；自持面的清单仍是空载体组。
           $payload = Join-Path $root 'payload'
-          foreach ($name in $declared) {
-            $file = Join-Path $payload $name
-            if (-not (Test-Path $file)) { throw "the payload is missing $name" }
-            Copy-Item $file "$root\stage-endstone\plugins\hosihikari\" -Force
-            # 注释文档跟着走：插件作者读的就是它（可用性时机这类行为约定写在里面）。
-            $doc = [System.IO.Path]::ChangeExtension($file, '.xml')
-            if (Test-Path $doc) { Copy-Item $doc "$root\stage-endstone\plugins\hosihikari\" -Force }
+          foreach ($carrier in @(
+              @{ Manifest = "$root\Shim\carriers\endstone\hosihikari.json";  Stage = "$root\stage-endstone\plugins\hosihikari";  Shim = 'Hosihikari.Binding.Endstone.Shim.dll' },
+              @{ Manifest = "$root\Shim\carriers\levilamina\hosihikari.json"; Stage = "$root\stage-levilamina\mods\hosihikari"; Shim = 'Hosihikari.Binding.LeviLamina.Shim.dll' })) {
+            $declared = (Get-Content $carrier.Manifest -Raw | ConvertFrom-Json).carrier |
+              ForEach-Object { @($_.sharedAssemblies) + @($_.components.assembly) + @($_.bootstrap.assembly) } |
+              Where-Object { $_ } | Select-Object -Unique
+            foreach ($name in $declared) {
+              $file = Join-Path $payload $name
+              if (-not (Test-Path $file)) { throw "the payload is missing $name" }
+              Copy-Item $file $carrier.Stage -Force
+              # 注释文档跟着走：插件作者读的就是它（可用性时机这类行为约定写在里面）。
+              $doc = [System.IO.Path]::ChangeExtension($file, '.xml')
+              if (Test-Path $doc) { Copy-Item $doc $carrier.Stage -Force }
+            }
+
+            # 垫片是原生 PE，不进 sharedAssemblies（没有程序集清单），单独搬。
+            Copy-Item (Join-Path $payload $carrier.Shim) $carrier.Stage -Force
           }
-          Copy-Item (Join-Path $payload 'Hosihikari.Binding.Endstone.Shim.dll') `
-            "$root\stage-endstone\plugins\hosihikari\" -Force
 
           # 每个附件根部的 sei.json 是分发元数据；artifact.prerequisites 指向同名的
           # bundle sei，rid 区分平台。安装时根级 sei.json 被跳过。
@@ -320,6 +384,7 @@ jobs:
               'mods/hosihikari/hosihikari.dll',
               'mods/hosihikari/hosihikari.json',
               'mods/hosihikari/manifest.json',
+              'mods/hosihikari/Hosihikari.Binding.LeviLamina.Shim.dll',
               'mods/hosihikari/lang/ar.json',
               'mods/hosihikari/lang/en.json',
               'mods/hosihikari/lang/es.json',
@@ -349,13 +414,18 @@ jobs:
           }
 
           # 载体清单声明了什么，包里就得有什么：清单与载荷一起发，少一个都不行。
-          $carrier = (Get-Content "$root\Shim\carriers\endstone\hosihikari.json" -Raw | ConvertFrom-Json).carrier
-          $declared = @($carrier.sharedAssemblies) + @($carrier.components.assembly) + @($carrier.bootstrap.assembly) |
-            Where-Object { $_ } | Select-Object -Unique
-          $entries = & tar -tf (Join-Path $out 'hosihikari-endstone-windows-x64.zip') | ForEach-Object { $_ -replace '\\', '/' }
-          foreach ($name in @($declared) + @('Hosihikari.Binding.Endstone.Shim.dll')) {
-            if ($entries -notcontains "plugins/hosihikari/$name") {
-              throw "the Endstone archive is missing plugins/hosihikari/$name"
+          # 垫片不在清单里（原生 PE，没有程序集清单），单独断言。
+          foreach ($variant in @(
+              @{ Manifest = "$root\Shim\carriers\endstone\hosihikari.json";  Archive = 'hosihikari-endstone-windows-x64.zip';  Prefix = 'plugins/hosihikari'; Shim = 'Hosihikari.Binding.Endstone.Shim.dll' },
+              @{ Manifest = "$root\Shim\carriers\levilamina\hosihikari.json"; Archive = 'hosihikari-levilamina-windows-x64.zip'; Prefix = 'mods/hosihikari';   Shim = 'Hosihikari.Binding.LeviLamina.Shim.dll' })) {
+            $declared = (Get-Content $variant.Manifest -Raw | ConvertFrom-Json).carrier |
+              ForEach-Object { @($_.sharedAssemblies) + @($_.components.assembly) + @($_.bootstrap.assembly) } |
+              Where-Object { $_ } | Select-Object -Unique
+            $entries = & tar -tf (Join-Path $out $variant.Archive) | ForEach-Object { $_ -replace '\\', '/' }
+            foreach ($name in @($declared) + @($variant.Shim)) {
+              if ($entries -notcontains "$($variant.Prefix)/$name") {
+                throw "$($variant.Archive) is missing $($variant.Prefix)/$name"
+              }
             }
           }
 

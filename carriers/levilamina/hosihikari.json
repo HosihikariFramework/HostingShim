@@ -10,7 +10,33 @@
   "description": "LeviLamina carrier for the Hosihikari framework.",
   "author": "HosihikariFramework",
   "carrier": {
-    "sharedAssemblies": [],
-    "components": []
+    "sharedAssemblies": [
+      "Hosihikari.Binding.Abi.dll",
+      "Hosihikari.Binding.LeviLamina.Interop.dll",
+      "Hosihikari.Binding.dll",
+      "Hosihikari.Binding.LeviLamina.dll",
+      "Hosihikari.Carrier.dll",
+      "Hosihikari.Carrier.LeviLamina.dll",
+      "Hosihikari.Carrier.LeviLamina.Bootstrap.dll",
+      "Hosihikari.Extension.Abstractions.dll",
+      "Hosihikari.Extension.Event.dll",
+      "Hosihikari.Extension.Event.LeviLamina.dll",
+      "Hosihikari.Extension.Async.dll",
+      "Hosihikari.Extension.Async.LeviLamina.dll"
+    ],
+    "components": [
+      {
+        "assembly": "Hosihikari.Carrier.LeviLamina.dll",
+        "type": "Hosihikari.Carrier.LeviLamina.ServerSynchronizationContextComponent"
+      },
+      {
+        "assembly": "Hosihikari.Extension.Event.LeviLamina.dll",
+        "type": "Hosihikari.Extension.Event.LeviLamina.EventPublisherComponent"
+      }
+    ],
+    "bootstrap": {
+      "assembly": "Hosihikari.Carrier.LeviLamina.Bootstrap.dll",
+      "type": "Hosihikari.Carrier.LeviLamina.Bootstrap.LeviLaminaCarrierServicesConfigurator"
+    }
   }
 }
