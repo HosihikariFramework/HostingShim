@@ -143,16 +143,12 @@ $chat = if ($env:HOSIHIKARI_SMOKE_CHAT) { $env:HOSIHIKARI_SMOKE_CHAT } else { 'h
 # fail here. Xuid is empty under offline mode (no Xbox identity), so it is only
 # required to be readable - pinned to empty so a future non-empty shows up as a
 # change rather than a silent pass.
-#
-# Chat is best-effort: the offline client's packet shape for it is not stable
-# across protocol versions, so a miss is reported but does not fail the run. The
-# mandatory checks already exercise the whole path through the join event.
-$chatOk = $text -match "CHAT name=\[$BotName\] msg=\[$chat\]"
 $checks = @(
     @{ Name = 'probe was enabled'; Ok = ($text -match 'ENABLED') },
     @{ Name = 'join reached the plugin'; Ok = ($text -match "JOIN name=\[$BotName\]") },
     @{ Name = 'the view carries the real player'; Ok = ($text -match 'native=\[ServerPlayer\]') },
     @{ Name = 'xuid is readable (empty offline)'; Ok = ($text -match 'xuid=\[\]') },
+    @{ Name = 'chat reached the plugin'; Ok = ($text -match "CHAT name=\[$BotName\] msg=\[$chat\]") },
     @{ Name = 'leave reached the plugin'; Ok = ($text -match "LEAVE name=\[$BotName\]") },
     @{ Name = 'server stopped'; Ok = (-not $timedOut) }
 )
@@ -161,7 +157,6 @@ foreach ($check in $checks) {
     Write-Host ("{0}  {1}" -f $(if ($check.Ok) { 'PASS' } else { 'FAIL' }), $check.Name)
     if (-not $check.Ok) { $failed = $true }
 }
-Write-Host ("{0}  chat reached the plugin (best effort)" -f $(if ($chatOk) { 'PASS' } else { 'SKIP' }))
 foreach ($bad in @('Unhandled exception', 'Segmentation fault')) {
     if ($text -match $bad -or ((Test-Path $log) -and (Get-Content $log -Raw) -match $bad)) {
         Write-Host "FAIL  the server died: $bad"
