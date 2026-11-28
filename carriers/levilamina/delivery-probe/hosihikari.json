@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "name": "Probe",
+  "entry": "Probe.dll",
+  "version": "1.0.0",
+  "loader": "assembly",
+  "kind": "plugin",
+  "apiVersion": 3,
+  "dependencies": [{ "name": "hosihikari" }]
+}

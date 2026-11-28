@@ -32,6 +32,16 @@ bash carriers/endstone/smoke.sh <server root>
 CI also runs `verify-live` and `verify-providers`. Live tests need a server root and the released
 archives; they are manual workflows.
 
+`carriers\levilamina\smoke-delivery.ps1` covers what `smoke-live.ps1` cannot: the latter only
+proves registration and shutdown, while this one drives a real client in and asserts the player
+events reached a plugin with a usable view (`Name` equal to the login name, non-null native
+object). It needs `online-mode=false` and `allow-list=false` in the server root, and a
+`node_modules` holding `bedrock-protocol` passed as `HOSIHIKARI_BOT_MODULES`. The probe package
+lives in `carriers/levilamina/delivery-probe/` and ships two manifests, `manifest.json` for
+LeviLamina (routed by `type`) and `hosihikari.json` for the framework. Subscriptions made in
+`OnLoad` are dropped until the scope opens at enable time, so the script waits for the probe to
+report `ENABLED` before connecting anyone.
+
 ## Invariants
 
 - All C++ is formatted with the repo's `.clang-format` (clang-format 23). Run
