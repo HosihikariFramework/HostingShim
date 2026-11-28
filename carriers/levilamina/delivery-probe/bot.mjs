@@ -30,17 +30,23 @@ const leave = (code) => {
 
 client.on('spawn', () => {
   console.log('SPAWNED');
-  // 一句聊天：引发 chat 事件，路径与 join 不同（各自一个原生钩子）。字段按
-  // bedrock-protocol 的文档例子给全，缺一个服务端会静默丢掉这个包。
+  // 一句聊天：引发 chat 事件，路径与 join 不同（各自一个原生钩子）。
+  //
+  // 仍未打通，脚本里标 SKIP：包结构已照协议给全（needs_translation/category/type
+  // 的顺序与 body 分支都对），服务端就是不记录。`message_only` 与 `authored` 两个
+  // category、`/say` 与 `/me` 两条 command_request 都试过，都无声。要接着查就从
+  // 这里开始，别再从空中摸索一遍。
   setTimeout(() => {
     client.queue('text', {
-      type: 'chat',
       needs_translation: false,
+      category: 'authored',
+      type: 'chat',
       source_name: username,
+      message: 'hello-from-probe',
       xuid: '',
       platform_chat_id: '',
+      has_filtered_message: false,
       filtered_message: '',
-      message: 'hello-from-probe',
     });
     console.log('CHATTED');
   }, 2000);
