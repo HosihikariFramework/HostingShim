@@ -139,6 +139,14 @@ if ($timedOut) {
 $text = if (Test-Path $delivered) { Get-Content $delivered -Raw } else { '' }
 $chat = if ($env:HOSIHIKARI_SMOKE_CHAT) { $env:HOSIHIKARI_SMOKE_CHAT } else { 'hello-from-probe' }
 
+# The driver records the exit code; without reading it a crashed server could still
+# pass on the plugin's output alone.
+$serverExit = $null
+if (Test-Path $exitFile) {
+    $parsed = 0
+    if ([int]::TryParse((Get-Content $exitFile -Raw).Trim(), [ref]$parsed)) { $serverExit = $parsed }
+}
+
 # Name must equal the client's login name: an empty view or a garbage value both
 # fail here. Xuid is empty under offline mode (no Xbox identity), so it is only
 # required to be readable - pinned to empty so a future non-empty shows up as a
@@ -150,7 +158,7 @@ $checks = @(
     @{ Name = 'xuid is readable (empty offline)'; Ok = ($text -match 'xuid=\[\]') },
     @{ Name = 'chat reached the plugin'; Ok = ($text -match "CHAT name=\[$BotName\] msg=\[$chat\]") },
     @{ Name = 'leave reached the plugin'; Ok = ($text -match "LEAVE name=\[$BotName\]") },
-    @{ Name = 'server stopped'; Ok = (-not $timedOut) }
+    @{ Name = 'server stopped'; Ok = (-not $timedOut -and $serverExit -eq 0) }
 )
 $failed = $false
 foreach ($check in $checks) {
